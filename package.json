@@ -1,7 +1,7 @@
 {
   "name": "Mizzy",
   "version": "0.0.1",
-  "description": "A 2D Vector and Behavior Library",
+  "description": "A MIDI Processing Library",
   "main": "dist/mizzy.cjs.js",
   "jsnext:main": "dist/mizzy.es6.js",
   "repository": {

@@ -22,13 +22,13 @@ const midinotes = {
     "Cb": [11, 23, 35, 47, 59, 71, 83, 95, 107, 119]
 };
 
-let noteon = 0x90;
-let noteoff = 0x80;
-let aftertouch = 0xA0;
-let controlchange = 0xB0;
-let programchange = 0xC0;
-let channelpressure = 0xD0;
-let pitchbend = 0xE0;
+const noteon = 0x90;
+const noteoff = 0x80;
+const aftertouch = 0xA0;
+const controlchange = 0xB0;
+const programchange = 0xC0;
+const channelpressure = 0xD0;
+const pitchbend = 0xE0;
 
 export default class MIDIData {
 

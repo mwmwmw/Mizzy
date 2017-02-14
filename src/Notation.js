@@ -36,14 +36,8 @@ const keynotes = {
 
 const keys = ["C", "G", "D", "A", "E", "B", "Cb", "F#", "Gb", "C#", "Db", "Ab", "Eb","Bb","F"];
 
-
-
 export default class Notation {
-
-
     static get Keys () { return keys; }
     static get KeyNotes () { return keynotes; }
     static get Accidentals () {return accidentals; }
-
-
 }
