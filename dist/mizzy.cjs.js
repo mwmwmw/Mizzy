@@ -1,5 +1,6 @@
-(function (exports) {
 'use strict';
+
+Object.defineProperty(exports, '__esModule', { value: true });
 
 var classCallCheck = function (instance, Constructor) {
   if (!(instance instanceof Constructor)) {
@@ -806,6 +807,4 @@ exports.NoteProcessor = NoteProcessor;
 exports.Event = Events;
 exports.Mizzy = Mizzy;
 
-}((this.Mizzy = this.Mizzy || {})));
-
-//# sourceMappingURL=mizzy.map
+//# sourceMappingURL=mizzy.cjs.map

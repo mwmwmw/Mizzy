@@ -26,7 +26,7 @@ export default class Events {
 		}
 	};
 
-	static onMIDIMessage = function (message) {
+	static onMIDIMessage(message) {
 		let eventName = null, data = null;
 		switch (message.data[0]) {
 			case 128:
@@ -66,7 +66,7 @@ export default class Events {
 	};
 
 	// loop through all the bound events and execute with the newly processed data.
-	static executeEventHandlers = function (event, data) {
+	static executeEventHandlers(event, data) {
 		if (listeners[event]) {
 			for (let i = listeners[event].length - 1; i >= 0; i--) {
 				if (listeners[event] !== undefined) {
@@ -81,7 +81,7 @@ export default class Events {
 	};
 
 	// EZ binding for Control Change data, just pass in the CC number and handler. Can only be unbound with unbindALL()
-	static onCC = function (cc, handler) {
+	static onCC(cc, handler) {
 		const wrapper = data => {
 			if (data.cc == cc) {
 				handler(data);
@@ -89,14 +89,16 @@ export default class Events {
 		};
 		this.on("Controller", wrapper);
 	};
+
 	// EZ binding for key presses, bind these two handlers to key on/off. Can only be unbound with unbindALL()
-	static keyToggle = function (handlerOn, handlerOff) {
+	static keyToggle(handlerOn, handlerOff) {
 		this.on("NoteOn", handlerOn);
 		this.on("NoteOff", handlerOff);
 	};
+
 	// currently broken. will bind an event to particular keypress.
-	// this.onNoteName = function (name, handler) {
-	//     let wrapper = function (data) {
+	// this.onNoteName (name, handler) {
+	//     let wrapper (data) {
 	//         if(typeof data.note_name === "string") {
 	//             if (name.length > 1) {
 	//                 let dataname = new RegExp(name);
@@ -119,7 +121,7 @@ export default class Events {
 	//     this.on("NoteOn", wrapper);
 	// };
 	// EZ binding for key values. Can only be unbound with unbindALL()
-	static onNoteNumber = function (number, handler) {
+	static onNoteNumber(number, handler) {
 		const wrapper = data => {
 			if (data.value == number) {
 				handler(data);
@@ -127,8 +129,9 @@ export default class Events {
 		};
 		this.on("NoteOn", wrapper);
 	};
+
 	// EZ binding for key values. Can only be unbound with unbindALL()
-	static offNoteNumber = function (number, handler) {
+	static offNoteNumber(number, handler) {
 		const wrapper = data => {
 			if (data.value == number) {
 				handler(data);
@@ -136,12 +139,14 @@ export default class Events {
 		};
 		this.on("NoteOff", wrapper);
 	};
+
 	// EZ binding for a range of key values, bind these two handlers to key value. Can only be unbound with unbindALL()
-	static keyToggleRange = function (min, max, onHandler, offHandler) {
+	static keyToggleRange(min, max, onHandler, offHandler) {
 		this.onRange(min, max, onHandler);
 		this.offRange(min, max, offHandler);
 	};
-	static onRange = function (min, max, onHandler, offHandler) {
+
+	static onRange(min, max, onHandler, offHandler) {
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
 				this.onNoteNumber(i, onHandler);
@@ -152,7 +157,8 @@ export default class Events {
 			}
 		}
 	};
-	static offRange = function (min, max, onHandler, offHandler) {
+
+	static offRange(min, max, onHandler, offHandler) {
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
 				this.offNoteNumber(i, offHandler);
@@ -163,23 +169,27 @@ export default class Events {
 			}
 		}
 	};
+
 	// Removes all bound events.
-	static unbindAll = function () {
+	static unbindAll() {
 		this.unBindKeyboard();
 		for (const event in listeners) {
 			delete listeners[event];
 		}
 		return true;
 	};
-	static bindKeyboard = function () {
+
+	static bindKeyboard() {
 		window.addEventListener("keydown", this.keyboardKeyDown);
 		window.addEventListener("keyup", this.keyboardKeyUp);
 	};
-	static unBindKeyboard = function () {
+
+	static unBindKeyboard() {
 		window.removeEventListener("keydown", this.keyboardKeyDown);
 		window.removeEventListener("keyup", this.keyboardKeyUp);
 	};
-	static keyboardKeyDown = message => {
+
+	static keyboardKeyDown(message) {
 		let newMessage = null;
 		switch (message.keyCode) {
 			case 90:
@@ -227,7 +237,8 @@ export default class Events {
 		}
 
 	};
-	static keyboardKeyUp = message => {
+
+	static keyboardKeyUp(message) {
 		let newMessage = null;
 		switch (message.keyCode) {
 			case 90:
