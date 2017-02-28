@@ -36,7 +36,7 @@ function bundle(options, type, minify) {
 		.on("bundle", bundle => buildCaches[filename] = bundle) // cache bundle for re-bundles triggered by watch
 		.pipe(source(paths.entry))
 		.pipe(buffer())
-		.pipe(rename(filename))
+		.pipe(rename(filename));
 	if (minify) {
 		b = b
 			.pipe(uglify());
