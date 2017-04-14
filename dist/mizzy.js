@@ -1,4 +1,4 @@
-(function (exports) {
+var Mizzy = (function () {
 'use strict';
 
 var classCallCheck = function (instance, Constructor) {
@@ -24,6 +24,48 @@ var createClass = function () {
     return Constructor;
   };
 }();
+
+
+
+
+
+
+
+
+
+var inherits = function (subClass, superClass) {
+  if (typeof superClass !== "function" && superClass !== null) {
+    throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
+  }
+
+  subClass.prototype = Object.create(superClass && superClass.prototype, {
+    constructor: {
+      value: subClass,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    }
+  });
+  if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
+};
+
+
+
+
+
+
+
+
+
+
+
+var possibleConstructorReturn = function (self, call) {
+  if (!self) {
+    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+  }
+
+  return call && (typeof call === "object" || typeof call === "function") ? call : self;
+};
 
 var midinotes = {
     "C": [0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120],
@@ -106,6 +148,22 @@ var MIDIData = function () {
     return MIDIData;
 }();
 
+var Convert = function () {
+	function Convert() {
+		classCallCheck(this, Convert);
+	}
+
+	createClass(Convert, null, [{
+		key: "MIDINoteToFrequency",
+		value: function MIDINoteToFrequency(midinote) {
+			var tune = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 440;
+
+			return tune * Math.pow(2, (midinote - 69) / 12);
+		}
+	}]);
+	return Convert;
+}();
+
 var accidentals = {
     "C": "#",
     "G": "#",
@@ -168,54 +226,8 @@ var Notation = function () {
     return Notation;
 }();
 
-var Generate = function () {
-    function Generate() {
-        classCallCheck(this, Generate);
-    }
-
-    createClass(Generate, null, [{
-        key: "NoteOn",
-        value: function NoteOn(noteNumber, velocity) {
-            new Uint8Array([MIDIData.NoteOn, noteNumber, velocity]);
-        }
-    }, {
-        key: "NoteOff",
-        value: function NoteOff(noteNumber, velocity) {
-            new Uint8Array([MIDIData.NoteOff, noteNumber, velocity]);
-        }
-    }, {
-        key: "AfterTouch",
-        value: function AfterTouch(noteNumber, value) {
-            new Uint8Array([MIDIData.AfterTouch, noteNumber, value]);
-        }
-    }, {
-        key: "ControlChange",
-        value: function ControlChange(controller, value) {
-            new Uint8Array([MIDIData.ControlChange, controller, value]);
-        }
-    }, {
-        key: "ProgramChange",
-        value: function ProgramChange(instrument) {
-            new Uint8Array([MIDIData.ProgramChange, instrument]);
-        }
-    }, {
-        key: "ChannelPressure",
-        value: function ChannelPressure(pressure) {
-            new Uint8Array([MIDIData.ChannelPressure, pressure]);
-        }
-    }, {
-        key: "PitchBend",
-        value: function PitchBend(value) {
-            // @todo http://stackoverflow.com/questions/30911185/javascript-reading-3-bytes-buffer-as-an-integer
-            var msb = 1,
-                lsb = 1;
-            new Uint8Array([MIDIData.ChannelPressure, msb, lsb]);
-        }
-    }]);
-    return Generate;
-}();
-
 var notes = MIDIData.MidiNotes;
+var keynotes = Notation.KeyNotes;
 
 var NoteProcessor = function () {
 	function NoteProcessor() {
@@ -226,25 +238,18 @@ var NoteProcessor = function () {
 		key: "processNoteEvent",
 
 		// add all of our extra data to the MIDI message event.
-		value: function processNoteEvent(message, messageType) {
+		value: function processNoteEvent(message, eventName) {
+			var key = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : "C";
+
 			var notes = this.getNoteNames(message.data[1]);
 			var data = {
 				"enharmonics": notes,
-				"note": this.findNoteInKey(notes, this.key),
-				"inKey": this.isNoteInKey(notes, this.key),
+				"note": NoteProcessor.findNoteInKey(notes, key),
+				"inKey": NoteProcessor.isNoteInKey(notes, key),
 				"value": message.data[1],
 				"velocity": message.data[2],
-				"frequency": 440 * Math.pow(2, (message.data[1] - 69) / 12)
+				"frequency": Convert.MIDINoteToFrequency(message.data[1])
 			};
-			switch (messageType) {
-				case "NoteOn":
-					this.keysPressed[message.data[1]] = data;
-					break;
-				case "NoteOff":
-					delete this.keysPressed[message.data[1]];
-					break;
-			}
-			
 			return Object.assign(message, data);
 		}
 	}, {
@@ -350,48 +355,93 @@ var NoteProcessor = function () {
 			}
 			return false;
 		}
-
-		// this.findAccidental = function(notes, key) {
-		//     // are there any enharmonic equivalents
-		//     if (notes.length > 1) {
-		//         // check to see if the first note has an accidental (indicates you're on a black key);
-		//         if(notes[0].length > 1) {
-		//             for (var i = 0; i < notes.length; i++) {
-		//                 var note = notes[i];
-		//                 // does this note match the note in key
-		//                 if (note[note.length - 1] === this.accidentals[key]) {
-		//                     return note;
-		//                 }
-		//             }
-		//             return notes[0];
-		//         } else {
-		//             return notes[0];
-		//         }
-		//     } else {
-		//         return notes[0];
-		//     }
-		// };
-
 	}]);
 	return NoteProcessor;
 }();
 
-var listeners = {};
+NoteProcessor.keysPressed = [];
+
+var Generate = function () {
+	function Generate() {
+		classCallCheck(this, Generate);
+	}
+
+	createClass(Generate, null, [{
+		key: "NoteOn",
+		value: function NoteOn(noteNumber, velocity) {
+			return new Uint8Array([MIDIData.NoteOn, noteNumber, velocity]);
+		}
+	}, {
+		key: "NoteOff",
+		value: function NoteOff(noteNumber, velocity) {
+			return new Uint8Array([MIDIData.NoteOff, noteNumber, velocity]);
+		}
+	}, {
+		key: "AfterTouch",
+		value: function AfterTouch(noteNumber, value) {
+			return new Uint8Array([MIDIData.AfterTouch, noteNumber, value]);
+		}
+	}, {
+		key: "ControlChange",
+		value: function ControlChange(controller, value) {
+			return new Uint8Array([MIDIData.ControlChange, controller, value]);
+		}
+	}, {
+		key: "ProgramChange",
+		value: function ProgramChange(instrument) {
+			return new Uint8Array([MIDIData.ProgramChange, instrument]);
+		}
+	}, {
+		key: "ChannelPressure",
+		value: function ChannelPressure(pressure) {
+			return new Uint8Array([MIDIData.ChannelPressure, pressure]);
+		}
+	}, {
+		key: "PitchBend",
+		value: function PitchBend(value) {
+			// @todo http://stackoverflow.com/questions/30911185/javascript-reading-3-bytes-buffer-as-an-integer
+			var msb = 1,
+			    lsb = 1;
+			return new Uint8Array([MIDIData.ChannelPressure, msb, lsb]);
+		}
+	}, {
+		key: "FakeMessage",
+		value: function FakeMessage(messageType, value) {
+			var data = null;
+			switch (messageType) {
+				case "NoteOn":
+					data = Generate.NoteOn(value, 127);
+					break;
+				case "NoteOff":
+					data = Generate.NoteOff(value, 127);
+					break;
+			}
+			var newMessage = new MIDIMessageEvent("midimessage", { "data": data }) || { "data": data };
+			return NoteProcessor.processNoteEvent(newMessage, messageType, this.key);
+		}
+	}]);
+	return Generate;
+}();
 
 var Events = function () {
 	function Events() {
 		classCallCheck(this, Events);
+
+		this.keysPressed = [];
+		this.listeners = {};
+		this.keyboadKeyPressed = [];
 	}
 
-	createClass(Events, null, [{
-		key: "on",
+	// take this event name, and run this handler when it occurs
 
-		// take this event name, and run this handler when it occurs
+
+	createClass(Events, [{
+		key: "on",
 		value: function on(event, handler) {
-			if (listeners[event] === undefined) {
-				listeners[event] = [handler];
+			if (this.listeners[event] === undefined) {
+				this.listeners[event] = [handler];
 			} else {
-				listeners[event].push(handler);
+				this.listeners[event].push(handler);
 			}
 			return handler;
 		}
@@ -401,12 +451,12 @@ var Events = function () {
 
 		// unbind this event and handler
 		value: function off(event, handler) {
-			if (listeners[event]) {
-				for (var i = listeners[event].length - 1; i >= 0; i--) {
-					if (listeners[event].length === 1) {
-						delete listeners[event];
+			if (this.listeners[event]) {
+				for (var i = this.listeners[event].length - 1; i >= 0; i--) {
+					if (this.listeners[event].length === 1) {
+						delete this.listeners[event];
 					} else {
-						listeners[event].splice(i, 1);
+						this.listeners[event].splice(i, 1);
 						break;
 					}
 				}
@@ -415,21 +465,29 @@ var Events = function () {
 	}, {
 		key: "onMIDIMessage",
 		value: function onMIDIMessage(message) {
+			var key = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "C";
+
 			var eventName = null,
 			    data = null;
 			switch (message.data[0]) {
 				case 128:
 					eventName = "NoteOff";
 					delete this.keysPressed[message.data[1]];
-					data = NoteProcessor.processNoteEvent(message, eventName);
+					data = NoteProcessor.processNoteEvent(message, eventName, key);
 					break;
 				case 144:
+					// handle 0 velocity as a note off event
 					if (message.data[2] > 0) {
 						eventName = "NoteOn";
 					} else {
 						eventName = "NoteOff";
 					}
-					data = NoteProcessor.processNoteEvent(message, eventName);
+					data = NoteProcessor.processNoteEvent(message, eventName, key);
+					if (eventName == "NoteOn") {
+						this.keysPressed[message.data[1]] = data;
+					} else {
+						delete this.keysPressed[message.data[1]];
+					}
 					break;
 				case 176:
 					eventName = "Controller";
@@ -450,7 +508,7 @@ var Events = function () {
 			}
 			// if there is no event name, then we don't support that event yet so do nothing.
 			if (eventName !== null) {
-				Events.executeEventHandlers(eventName, data);
+				this.executeEventHandlers(eventName, data);
 			}
 		}
 	}, {
@@ -459,11 +517,11 @@ var Events = function () {
 
 		// loop through all the bound events and execute with the newly processed data.
 		value: function executeEventHandlers(event, data) {
-			if (listeners[event]) {
-				for (var i = listeners[event].length - 1; i >= 0; i--) {
-					if (listeners[event] !== undefined) {
-						if (typeof listeners[event][i] === "function" && listeners[event][i]) {
-							listeners[event][i](data);
+			if (this.listeners[event]) {
+				for (var i = this.listeners[event].length - 1; i >= 0; i--) {
+					if (this.listeners[event] !== undefined) {
+						if (typeof this.listeners[event][i] === "function" && this.listeners[event][i]) {
+							this.listeners[event][i](data);
 						} else {
 							throw "Event handler is not a function.";
 						}
@@ -553,8 +611,8 @@ var Events = function () {
 			this.offRange(min, max, offHandler);
 		}
 	}, {
-		key: "onRange",
-		value: function onRange(min, max, onHandler, offHandler) {
+		key: "onSplit",
+		value: function onSplit(min, max, onHandler, offHandler) {
 			if (max > min) {
 				for (var i = min; i <= max; i++) {
 					this.onNoteNumber(i, onHandler);
@@ -566,8 +624,8 @@ var Events = function () {
 			}
 		}
 	}, {
-		key: "offRange",
-		value: function offRange(min, max, onHandler, offHandler) {
+		key: "offSplit",
+		value: function offSplit(min, max, onHandler, offHandler) {
 			if (max > min) {
 				for (var i = min; i <= max; i++) {
 					this.offNoteNumber(i, offHandler);
@@ -585,227 +643,303 @@ var Events = function () {
 		// Removes all bound events.
 		value: function unbindAll() {
 			this.unBindKeyboard();
-			for (var event in listeners) {
-				delete listeners[event];
+			for (var event in this.listeners) {
+				delete this.listeners[event];
 			}
 			return true;
 		}
 	}, {
 		key: "bindKeyboard",
 		value: function bindKeyboard() {
-			window.addEventListener("keydown", this.keyboardKeyDown);
-			window.addEventListener("keyup", this.keyboardKeyUp);
+			var _this = this;
+
+			window.addEventListener("keydown", function (e) {
+				return _this.keyboardKeyDown(e);
+			});
+			window.addEventListener("keyup", function (e) {
+				return _this.keyboardKeyUp(e);
+			});
 		}
 	}, {
 		key: "unBindKeyboard",
 		value: function unBindKeyboard() {
-			window.removeEventListener("keydown", this.keyboardKeyDown);
-			window.removeEventListener("keyup", this.keyboardKeyUp);
+			var _this2 = this;
+
+			window.removeEventListener("keydown", function (e) {
+				return _this2.keyboardKeyDown(e);
+			});
+			window.removeEventListener("keyup", function (e) {
+				return _this2.keyboardKeyUp(e);
+			});
 		}
 	}, {
 		key: "keyboardKeyDown",
 		value: function keyboardKeyDown(message) {
-			var newMessage = null;
-			switch (message.keyCode) {
-				case 90:
-					newMessage = this.createMessage("NoteOn", 60);
-					break;
-				case 83:
-					newMessage = this.createMessage("NoteOn", 61);
-					break;
-				case 88:
-					newMessage = this.createMessage("NoteOn", 62);
-					break;
-				case 68:
-					newMessage = this.createMessage("NoteOn", 63);
-					break;
-				case 67:
-					newMessage = this.createMessage("NoteOn", 64);
-					break;
-				case 86:
-					newMessage = this.createMessage("NoteOn", 65);
-					break;
-				case 71:
-					newMessage = this.createMessage("NoteOn", 66);
-					break;
-				case 66:
-					newMessage = this.createMessage("NoteOn", 67);
-					break;
-				case 72:
-					newMessage = this.createMessage("NoteOn", 68);
-					break;
-				case 78:
-					newMessage = this.createMessage("NoteOn", 69);
-					break;
-				case 74:
-					newMessage = this.createMessage("NoteOn", 70);
-					break;
-				case 77:
-					newMessage = this.createMessage("NoteOn", 71);
-					break;
-				case 188:
-					newMessage = this.createMessage("NoteOn", 72);
-					break;
-			}
-			if (newMessage !== null) {
-				Events.sendMidiMessage(newMessage);
+			if (this.keyboadKeyPressed[message.keyCode] != true) {
+				this.keyboadKeyPressed[message.keyCode] = true;
+				var newMessage = null;
+				switch (message.keyCode) {
+					case 90:
+						newMessage = Generate.FakeMessage("NoteOn", 60);
+						break;
+					case 83:
+						newMessage = Generate.FakeMessage("NoteOn", 61);
+						break;
+					case 88:
+						newMessage = Generate.FakeMessage("NoteOn", 62);
+						break;
+					case 68:
+						newMessage = Generate.FakeMessage("NoteOn", 63);
+						break;
+					case 67:
+						newMessage = Generate.FakeMessage("NoteOn", 64);
+						break;
+					case 86:
+						newMessage = Generate.FakeMessage("NoteOn", 65);
+						break;
+					case 71:
+						newMessage = Generate.FakeMessage("NoteOn", 66);
+						break;
+					case 66:
+						newMessage = Generate.FakeMessage("NoteOn", 67);
+						break;
+					case 72:
+						newMessage = Generate.FakeMessage("NoteOn", 68);
+						break;
+					case 78:
+						newMessage = Generate.FakeMessage("NoteOn", 69);
+						break;
+					case 74:
+						newMessage = Generate.FakeMessage("NoteOn", 70);
+						break;
+					case 77:
+						newMessage = Generate.FakeMessage("NoteOn", 71);
+						break;
+					case 188:
+						newMessage = Generate.FakeMessage("NoteOn", 72);
+						break;
+				}
+				if (newMessage !== null) {
+					this.sendMidiMessage(newMessage);
+				}
 			}
 		}
 	}, {
 		key: "keyboardKeyUp",
 		value: function keyboardKeyUp(message) {
-			var newMessage = null;
-			switch (message.keyCode) {
-				case 90:
-					newMessage = this.createMessage("NoteOff", 60);
-					break;
-				case 83:
-					newMessage = this.createMessage("NoteOff", 61);
-					break;
-				case 88:
-					newMessage = this.createMessage("NoteOff", 62);
-					break;
-				case 68:
-					newMessage = this.createMessage("NoteOff", 63);
-					break;
-				case 67:
-					newMessage = this.createMessage("NoteOff", 64);
-					break;
-				case 86:
-					newMessage = this.createMessage("NoteOff", 65);
-					break;
-				case 71:
-					newMessage = this.createMessage("NoteOff", 66);
-					break;
-				case 66:
-					newMessage = this.createMessage("NoteOff", 67);
-					break;
-				case 72:
-					newMessage = this.createMessage("NoteOff", 68);
-					break;
-				case 78:
-					newMessage = this.createMessage("NoteOff", 69);
-					break;
-				case 74:
-					newMessage = this.createMessage("NoteOff", 70);
-					break;
-				case 77:
-					newMessage = this.createMessage("NoteOff", 71);
-					break;
-				case 188:
-					newMessage = this.createMessage("NoteOff", 72);
-					break;
-			}
-			if (newMessage !== null) {
-				this.sendMidiMessage(newMessage);
+			if (this.keyboadKeyPressed[message.keyCode] == true) {
+				delete this.keyboadKeyPressed[message.keyCode];
+				var newMessage = null;
+				switch (message.keyCode) {
+					case 90:
+						newMessage = Generate.FakeMessage("NoteOff", 60);
+						break;
+					case 83:
+						newMessage = Generate.FakeMessage("NoteOff", 61);
+						break;
+					case 88:
+						newMessage = Generate.FakeMessage("NoteOff", 62);
+						break;
+					case 68:
+						newMessage = Generate.FakeMessage("NoteOff", 63);
+						break;
+					case 67:
+						newMessage = Generate.FakeMessage("NoteOff", 64);
+						break;
+					case 86:
+						newMessage = Generate.FakeMessage("NoteOff", 65);
+						break;
+					case 71:
+						newMessage = Generate.FakeMessage("NoteOff", 66);
+						break;
+					case 66:
+						newMessage = Generate.FakeMessage("NoteOff", 67);
+						break;
+					case 72:
+						newMessage = Generate.FakeMessage("NoteOff", 68);
+						break;
+					case 78:
+						newMessage = Generate.FakeMessage("NoteOff", 69);
+						break;
+					case 74:
+						newMessage = Generate.FakeMessage("NoteOff", 70);
+						break;
+					case 77:
+						newMessage = Generate.FakeMessage("NoteOff", 71);
+						break;
+					case 188:
+						newMessage = Generate.FakeMessage("NoteOff", 72);
+						break;
+				}
+				if (newMessage !== null) {
+					this.sendMidiMessage(newMessage);
+				}
 			}
 		}
+	}, {
+		key: "sendMidiMessage",
+		value: function sendMidiMessage(message) {}
 	}]);
 	return Events;
 }();
 
-var key = "C";
-var midiAccess = null;
+var Mizzy = function (_Events) {
+	inherits(Mizzy, _Events);
 
-var Mizzy = function () {
-    function Mizzy() {
-        classCallCheck(this, Mizzy);
+	function Mizzy() {
+		classCallCheck(this, Mizzy);
 
-        if (!window.MIDIMessageEvent) {
-            window.MIDIMessageEvent = function (name, params) {
-                this.name = name;
-                return Object.assign(this, params);
-            };
-        }
+		var _this = possibleConstructorReturn(this, (Mizzy.__proto__ || Object.getPrototypeOf(Mizzy)).call(this));
 
-        this.key = key;
-        this.setKey = function (keyname) {
-            key = keyname;
-            this.key = key;
-            console.log("SET KEY", key);
-        };
-        this.keysPressed = [];
+		_this.keysPressed = [];
+		_this.midiAccess = null;
+		_this.loopback = true;
 
-        // will have the midi object passed in when successfully initialized
-        this.midiAccess = null;
+		_this.boundInputs = [];
+		_this.boundOutputs = [];
 
-        this.onMIDISuccess = function (midiAccessObj) {
-            // just grab from all inputs by default. It's the easiest.
-            midiAccess = midiAccessObj;
-            var inputs = midiAccess.inputs.values();
-            for (var input = inputs.next(); input && !input.done; input = inputs.next()) {
-                input.value.onmidimessage = this.onMIDIMessage.bind(this);
-            }
-        };
-        // throw an error if midi can't be initialized
-        this.onMIDIFailure = function (error) {
-            throw "No MIDI Available";
-        };
-        this.loopback = true;
-    }
+		_this.key = Notation.Keys[0]; // C-Major
+		if (!window.MIDIMessageEvent) {
+			window.MIDIMessageEvent = function (name, params) {
+				_this.name = name;
+				return Object.assign(_this, params);
+			};
+		}
+		if (_this.midiAccess === null) {
+			if (navigator.requestMIDIAccess) {
+				navigator.requestMIDIAccess({
+					sysex: false
+				}).then(function (e) {
+					return _this.onMIDISuccess(e);
+				}, function (e) {
+					return _this.onMIDIFailure(e);
+				});
+			} else {
+				throw "Your browser has no midi support";
+			}
+		}
+		return _this;
+	}
 
-    // initialize MIZZY. Throw an alert box if the user can't use it.
+	createClass(Mizzy, [{
+		key: "setKey",
+		value: function setKey(keyname) {
+			this.key = keyname;
+		}
+	}, {
+		key: "getMidiInputs",
+		value: function getMidiInputs() {
+			if (this.midiAccess != null) {
+				return this.midiAccess.inputs.values();
+			}
+		}
+	}, {
+		key: "getMidiOutputs",
+		value: function getMidiOutputs() {
+			if (this.midiAccess != null) {
+				return this.midiAccess.outputs.values();
+			}
+		}
+	}, {
+		key: "bindToInput",
+		value: function bindToInput(input) {
+			var _this2 = this;
 
+			this.boundInputs.push(input);
+			input.onmidimessage = function (e) {
+				return _this2.onMIDIMessage(e);
+			};
+		}
+	}, {
+		key: "unbindInput",
+		value: function unbindInput(input) {
+			var index = this.boundInputs.indexOf(input);
+			this.boundInputs.slice(1, index);
+			input.onmidimessage = null;
+		}
+	}, {
+		key: "bindToAllInputs",
+		value: function bindToAllInputs() {
+			if (this.midiAccess != null) {
+				var inputs = this.getMidiInputs();
+				for (var input = inputs.next(); input && !input.done; input = inputs.next()) {
+					this.bindToInput(input.value);
+				}
+			}
+		}
+	}, {
+		key: "unbindAllInputs",
+		value: function unbindAllInputs() {
+			this.boundInputs.forEach(this.unbindInput);
+		}
+	}, {
+		key: "bindToOutput",
+		value: function bindToOutput(output) {
+			this.boundOutputs.push(output);
+		}
+	}, {
+		key: "bindToAllOutputs",
+		value: function bindToAllOutputs() {
+			if (this.midiAccess != null) {
+				var inputs = this.getMidiOutputs();
+				for (var input = inputs.next(); input && !input.done; input = inputs.next()) {
+					this.bindToOutput(input.value);
+				}
+			}
+		}
+	}, {
+		key: "onMIDIFailure",
+		value: function onMIDIFailure(error) {
+			throw error;
+		}
+	}, {
+		key: "onMIDISuccess",
+		value: function onMIDISuccess(midiAccessObj) {
+			this.midiAccess = midiAccessObj;
+		}
+	}, {
+		key: "sendMidiMessage",
+		value: function sendMidiMessage(message) {
 
-    createClass(Mizzy, [{
-        key: "loopBackMidiMessage",
-        value: function loopBackMidiMessage(message) {
-            this.onMIDIMessage(message);
-        }
-    }], [{
-        key: "initialize",
-        value: function initialize() {
-            console.log(midiAccess);
-            if (midiAccess === null) {
-                if (navigator.requestMIDIAccess) {
-                    navigator.requestMIDIAccess({
-                        sysex: false
-                    }).then(this.onMIDISuccess.bind(this), this.onMIDIFailure.bind(this));
-                } else {
-                    alert("No MIDI support in your browser.");
-                }
-            }
-        }
-    }, {
-        key: "sendMidiMessage",
-        value: function sendMidiMessage(message) {
+			if (this.loopback) {
+				this.loopBackMidiMessage(message);
+			}
 
-            if (midiAccess !== null) {
-                var outputs = midiAccess.outputs.values();
-                for (var output = outputs.next(); output && !output.done; output = outputs.next()) {
-                    output.value.send(message.data, message.timeStamp);
-                }
-            }
-            if (this.loopback) {
-                this.loopBackMidiMessage(message);
-            }
-        }
-    }, {
-        key: "createMessage",
-        value: function createMessage(messageType, value) {
-            var data = null;
-            switch (messageType) {
-                case "NoteOn":
-                    data = Generate.NoteOn(value, 127);
-                    break;
-                case "NoteOff":
-                    data = Generate.NoteOff(value, 127);
-                    break;
-            }
-            var newMessage = new MIDIMessageEvent("midimessage", { "data": data }) || { "data": data };
-            return this.processNoteEvent(newMessage, messageType);
-        }
-    }]);
-    return Mizzy;
-}();
+			this.boundOutputs.forEach(function (output) {
+				return output.send(message.data, message.timeStamp);
+			});
+		}
+	}, {
+		key: "loopBackMidiMessage",
+		value: function loopBackMidiMessage(message) {
+			this.onMIDIMessage(message, this.key);
+		}
+	}, {
+		key: "outputDevices",
+		get: function get$$1() {
+			var deviceArray = [];
+			var devices = this.getMidiOutputs();
+			for (var input = devices.next(); input && !input.done; input = devices.next()) {
+				deviceArray.push(input.value);
+			}
+			return deviceArray;
+		}
+	}, {
+		key: "inputDevices",
+		get: function get$$1() {
+			var deviceArray = [];
+			var devices = this.getMidiInputs();
+			for (var input = devices.next(); input && !input.done; input = devices.next()) {
+				deviceArray.push(input.value);
+			}
+			return deviceArray;
+		}
+	}]);
+	return Mizzy;
+}(Events);
 
-exports.MIDIData = MIDIData;
-exports.Notation = Notation;
-exports.Generate = Generate;
-exports.NoteProcessor = NoteProcessor;
-exports.Event = Events;
-exports.Mizzy = Mizzy;
+return Mizzy;
 
-}((this.Mizzy = this.Mizzy || {})));
+}());
 
 //# sourceMappingURL=mizzy.map

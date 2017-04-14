@@ -42,89 +42,37 @@ class MIDIData {
     static get PitchBend() {return pitchbend;}
 }
 
-const accidentals = {
-    "C"  : "#",
-    "G"  : "#",
-    "D"  : "#",
-    "A"  : "#",
-    "E"  : "#",
-    "B"  : "#",
-    "Cb" : "b",
-    "F#" : "#",
-    "Gb" : "b",
-    "C#" : "#",
-    "Db" : "b",
-    "Ab" : "b",
-    "Eb" : "b",
-    "Bb" : "b",
-    "F"  : "b"
-};
+class Convert {
 
-const keynotes$1 = {
-    "C":  ["C", "D", "E", "F", "G", "A", "B"],
-    "G":  ["G", "A", "B", "C", "D", "E", "F#"],
-    "D":  ["D", "E", "F#", "G", "A", "B", "C#"],
-    "A":  ["A", "B", "C#", "D", "E", "F#", "G#"],
-    "E":  ["E", "F#", "G#", "A", "B", "C#", "D#"],
-    "B":  ["B", "C#", "D#", "E", "F#", "G#", "A#"],
-    "F#": ["F#", "G#", "A#", "B", "C#", "D#", "E#"],
-    "C#": ["C#", "D#", "E#", "F#", "G#", "A#", "B#"],
-    "Cb": ["Cb", "Db", "Eb", "Fb", "Gb", "Ab", "Bb"],
-    "Gb": ["Gb", "Ab", "Bb", "Cb", "Db", "Eb", "F"],
-    "Db": ["Db", "Eb", "F", "Gb", "Ab", "Bb", "C"],
-    "Ab": ["Ab", "Bb", "C", "Db", "Eb", "F", "G"],
-    "Eb": ["Eb", "F", "G", "Ab", "Bb", "C", "D"],
-    "Bb": ["Bb", "C", "D", "Eb", "F", "G", "A"],
-    "F":  ["F", "G", "A", "Bb", "C", "D", "E"]
-};
+	static MIDINoteToFrequency(midinote, tune = 440) {
+		return tune * Math.pow(2, (message.data[1] - 69) / 12)
+	}
 
-const keys = ["C", "G", "D", "A", "E", "B", "Cb", "F#", "Gb", "C#", "Db", "Ab", "Eb","Bb","F"];
 
-class Notation {
-    static get Keys () { return keys; }
-    static get KeyNotes () { return keynotes$1; }
-    static get Accidentals () {return accidentals; }
-}
-
-class Generate {
-
-    static NoteOn (noteNumber, velocity) { new Uint8Array([MIDIData.NoteOn, noteNumber, velocity]); }
-    static NoteOff (noteNumber, velocity) { new Uint8Array([MIDIData.NoteOff, noteNumber, velocity]);}
-    static AfterTouch (noteNumber, value) {new Uint8Array([MIDIData.AfterTouch, noteNumber, value]);}
-    static ControlChange (controller, value) {new Uint8Array([MIDIData.ControlChange,controller, value ]);}
-    static ProgramChange (instrument) {new Uint8Array([MIDIData.ProgramChange, instrument]);}
-    static ChannelPressure (pressure) {new Uint8Array([MIDIData.ChannelPressure, pressure]);}
-    static PitchBend (value) {
-        // @todo http://stackoverflow.com/questions/30911185/javascript-reading-3-bytes-buffer-as-an-integer
-        var msb = 1,
-            lsb = 1;
-        new Uint8Array([MIDIData.ChannelPressure, msb, lsb]);
-    }
 }
 
 let notes = MIDIData.MidiNotes;
 
 class NoteProcessor {
 	// add all of our extra data to the MIDI message event.
-	static processNoteEvent(message, messageType) {
+	static processNoteEvent(message, key = "C") {
 		const notes = this.getNoteNames(message.data[1]);
 		const data = {
 			"enharmonics": notes,
-			"note": this.findNoteInKey(notes, this.key),
-			"inKey": this.isNoteInKey(notes, this.key),
+			"note": NoteProcessor.findNoteInKey(notes, key),
+			"inKey": NoteProcessor.isNoteInKey(notes, key),
 			"value": message.data[1],
 			"velocity": message.data[2],
-			"frequency": 440 * Math.pow(2, (message.data[1] - 69) / 12)
+			"frequency": Convert.MIDINoteToFrequency(message.data[1])
 		};
-		switch (messageType) {
-			case "NoteOn":
-				this.keysPressed[message.data[1]] = data;
-				break;
-			case "NoteOff":
-				delete this.keysPressed[message.data[1]];
-				break;
-		}
-		
+		// switch (messageType) {
+		// 	case "NoteOn":
+		// 		NoteProcessor.keysPressed[message.data[1]] = data;
+		// 		break;
+		// 	case "NoteOff":
+		// 		delete NoteProcessor.keysPressed[message.data[1]];
+		// 		break;
+		// };
 		return Object.assign(message, data);
 	};
 
@@ -168,14 +116,12 @@ class NoteProcessor {
 		let noteNames = []; // create a list for the notes
 		for (var note in notes) {
 			// loop through the note table and push notes that match.
-			notes[note].forEach(keynumber =>
-				{
+			notes[note].forEach(keynumber => {
 					if (noteNumber === keynumber) {
 						noteNames.push(note);
 					}
 				}
-			)
-			;
+			);
 		}
 		return noteNames;
 	};
@@ -213,27 +159,8 @@ class NoteProcessor {
 		return false;
 	}
 
-	// this.findAccidental = function(notes, key) {
-	//     // are there any enharmonic equivalents
-	//     if (notes.length > 1) {
-	//         // check to see if the first note has an accidental (indicates you're on a black key);
-	//         if(notes[0].length > 1) {
-	//             for (var i = 0; i < notes.length; i++) {
-	//                 var note = notes[i];
-	//                 // does this note match the note in key
-	//                 if (note[note.length - 1] === this.accidentals[key]) {
-	//                     return note;
-	//                 }
-	//             }
-	//             return notes[0];
-	//         } else {
-	//             return notes[0];
-	//         }
-	//     } else {
-	//         return notes[0];
-	//     }
-	// };
 }
+NoteProcessor.keysPressed = [];
 
 const listeners = {};
 
@@ -262,13 +189,13 @@ class Events {
 		}
 	};
 
-	static onMIDIMessage(message) {
+	static onMIDIMessage(message, key = "C") {
 		let eventName = null, data = null;
 		switch (message.data[0]) {
 			case 128:
 				eventName = "NoteOff";
 				delete this.keysPressed[message.data[1]];
-				data = NoteProcessor.processNoteEvent(message, eventName);
+				data = NoteProcessor.processNoteEvent(message, eventName, key);
 				break;
 			case 144:
 				if (message.data[2] > 0) {
@@ -276,7 +203,7 @@ class Events {
 				} else {
 					eventName = "NoteOff";
 				}
-				data = NoteProcessor.processNoteEvent(message, eventName);
+				data = NoteProcessor.processNoteEvent(message, eventName, key);
 				break;
 			case 176:
 				eventName = "Controller";
@@ -524,90 +451,179 @@ class Events {
 
 }
 
-let key = "C";
-let midiAccess = null;
+class Generate {
 
-
-class Mizzy {
-    constructor () {
-        if(!window.MIDIMessageEvent) {
-            window.MIDIMessageEvent = function (name, params) {
-                this.name = name;
-                return Object.assign(this, params);
-            };
-        }
-
-        this.key = key;
-        this.setKey = function(keyname) {
-            key = keyname;
-            this.key = key;
-            console.log("SET KEY", key);
-        };
-        this.keysPressed = [];
-
-        // will have the midi object passed in when successfully initialized
-        this.midiAccess = null;
-
-        this.onMIDISuccess = function (midiAccessObj) {
-            // just grab from all inputs by default. It's the easiest.
-            midiAccess = midiAccessObj;
-            const inputs = midiAccess.inputs.values();
-            for (let input = inputs.next(); input && !input.done; input = inputs.next()) {
-                input.value.onmidimessage = this.onMIDIMessage.bind(this);
-            }
-        };
-        // throw an error if midi can't be initialized
-        this.onMIDIFailure = error => {
-            throw "No MIDI Available"
-        };
-        this.loopback = true;
+    static NoteOn (noteNumber, velocity) { new Uint8Array([MIDIData.NoteOn, noteNumber, velocity]); }
+    static NoteOff (noteNumber, velocity) { new Uint8Array([MIDIData.NoteOff, noteNumber, velocity]);}
+    static AfterTouch (noteNumber, value) {new Uint8Array([MIDIData.AfterTouch, noteNumber, value]);}
+    static ControlChange (controller, value) {new Uint8Array([MIDIData.ControlChange,controller, value ]);}
+    static ProgramChange (instrument) {new Uint8Array([MIDIData.ProgramChange, instrument]);}
+    static ChannelPressure (pressure) {new Uint8Array([MIDIData.ChannelPressure, pressure]);}
+    static PitchBend (value) {
+        // @todo http://stackoverflow.com/questions/30911185/javascript-reading-3-bytes-buffer-as-an-integer
+        var msb = 1,
+            lsb = 1;
+        new Uint8Array([MIDIData.ChannelPressure, msb, lsb]);
     }
-
-
-    // initialize MIZZY. Throw an alert box if the user can't use it.
-    static initialize () {
-        console.log(midiAccess);
-        if(midiAccess === null) {
-            if (navigator.requestMIDIAccess) {
-                navigator.requestMIDIAccess({
-                    sysex: false
-                }).then(this.onMIDISuccess.bind(this), this.onMIDIFailure.bind(this));
-            } else {
-                alert("No MIDI support in your browser.");
-            }
-        }
-    };
-
-    static sendMidiMessage (message) {
-
-        if(midiAccess !== null) {
-            const outputs = midiAccess.outputs.values();
-            for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
-                output.value.send(message.data, message.timeStamp);
-            }
-        }
-        if(this.loopback) {
-            this.loopBackMidiMessage(message);
-        }
-    };
-    static createMessage (messageType, value) {
-        let data = null;
-        switch (messageType) {
-            case "NoteOn":
-                data = Generate.NoteOn(value, 127);
-                break;
-            case "NoteOff":
-                data = Generate.NoteOff(value, 127);
-                break;
-        }
-        const newMessage = new MIDIMessageEvent("midimessage", {"data": data}) || {"data": data};
-        return this.processNoteEvent(newMessage, messageType);
-    };
-    loopBackMidiMessage (message) {
-        this.onMIDIMessage(message);
-    };
 }
 
-export { MIDIData, Notation, Generate, NoteProcessor, Events as Event, Mizzy };
+const accidentals = {
+    "C"  : "#",
+    "G"  : "#",
+    "D"  : "#",
+    "A"  : "#",
+    "E"  : "#",
+    "B"  : "#",
+    "Cb" : "b",
+    "F#" : "#",
+    "Gb" : "b",
+    "C#" : "#",
+    "Db" : "b",
+    "Ab" : "b",
+    "Eb" : "b",
+    "Bb" : "b",
+    "F"  : "b"
+};
+
+const keynotes$1 = {
+    "C":  ["C", "D", "E", "F", "G", "A", "B"],
+    "G":  ["G", "A", "B", "C", "D", "E", "F#"],
+    "D":  ["D", "E", "F#", "G", "A", "B", "C#"],
+    "A":  ["A", "B", "C#", "D", "E", "F#", "G#"],
+    "E":  ["E", "F#", "G#", "A", "B", "C#", "D#"],
+    "B":  ["B", "C#", "D#", "E", "F#", "G#", "A#"],
+    "F#": ["F#", "G#", "A#", "B", "C#", "D#", "E#"],
+    "C#": ["C#", "D#", "E#", "F#", "G#", "A#", "B#"],
+    "Cb": ["Cb", "Db", "Eb", "Fb", "Gb", "Ab", "Bb"],
+    "Gb": ["Gb", "Ab", "Bb", "Cb", "Db", "Eb", "F"],
+    "Db": ["Db", "Eb", "F", "Gb", "Ab", "Bb", "C"],
+    "Ab": ["Ab", "Bb", "C", "Db", "Eb", "F", "G"],
+    "Eb": ["Eb", "F", "G", "Ab", "Bb", "C", "D"],
+    "Bb": ["Bb", "C", "D", "Eb", "F", "G", "A"],
+    "F":  ["F", "G", "A", "Bb", "C", "D", "E"]
+};
+
+const keys = ["C", "G", "D", "A", "E", "B", "Cb", "F#", "Gb", "C#", "Db", "Ab", "Eb","Bb","F"];
+
+class Notation {
+    static get Keys () { return keys; }
+    static get KeyNotes () { return keynotes$1; }
+    static get Accidentals () {return accidentals; }
+}
+
+class Mizzy {
+	constructor() {
+		this.keysPressed = [];
+		this.midiAccess = null;
+		this.loopback = true;
+		this.initialize();
+		this.key = Notation.Keys[0]; // C-Major
+		if (!window.MIDIMessageEvent) {
+			window.MIDIMessageEvent = (name, params) => {
+				this.name = name;
+				return Object.assign(this, params);
+			};
+		}
+
+	}
+
+	setKey (keyname) {
+		this.key = keyname;
+	}
+
+	getMidiInputs() {
+		if(this.midiAccess != null) {
+			return this.midiAccess.inputs.values();
+		}
+	}
+
+	getMidiOutputs() {
+		if(this.midiAccess != null) {
+			return this.midiAccess.outputs.values();
+		}
+	}
+
+	getMidiOutputDevices () {
+		let deviceArray = [];
+		let devices = this.getMidiOutputs();
+		for (let input = devices.next(); input && !input.done; input = devices.next()) {
+			console.log(input);
+		}
+	}
+
+	getMidiInputDevices () {
+		let deviceArray = [];
+		let devices = this.getMidiInputs();
+		for (let input = devices.next(); input && !input.done; input = devices.next()) {
+			console.log(input);
+		}
+	}
+
+	bindToInput(input) {
+		input.value.onmidimessage = () => Events.onMIDIMessage;
+	}
+
+	bindToAllInputs () {
+		if(this.midiAccess != null) {
+			let inputs = this.getMidiInputs();
+			for (let input = inputs.next(); input && !input.done; input = inputs.next()) {
+				this.bindToInput(input);
+			}
+		}
+	}
+
+	onMIDIFailure (error) {
+		throw error
+	}
+
+	onMIDISuccess (midiAccessObj) {
+		this.midiAccess = midiAccessObj;
+	}
+
+	initialize() {
+		if (this.midiAccess === null) {
+			if (navigator.requestMIDIAccess) {
+				navigator.requestMIDIAccess({
+					sysex: false
+				}).then((e) => this.onMIDISuccess(e), (e) => this.onMIDIFailure(e));
+			} else {
+				alert("No MIDI support in your browser.");
+			}
+		}
+	}
+
+	sendMidiMessage(message) {
+
+		if (this.midiAccess !== null) {
+			const outputs = midiAccess.outputs.values();
+			for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
+				output.value.send(message.data, message.timeStamp);
+			}
+		}
+		if (this.loopback) {
+			this.loopBackMidiMessage(message);
+		}
+	}
+
+	createMessage(messageType, value) {
+		let data = null;
+		switch (messageType) {
+			case "NoteOn":
+				data = Generate.NoteOn(value, 127);
+				break;
+			case "NoteOff":
+				data = Generate.NoteOff(value, 127);
+				break;
+		}
+		const newMessage = new MIDIMessageEvent("midimessage", {"data": data}) || {"data": data};
+		return NoteProcessor.processNoteEvent(newMessage, messageType, this.key);
+	}
+
+	loopBackMidiMessage(message) {
+		Events.onMIDIMessage(message, this.key);
+	}
+}
+
+export default Mizzy;
 
 //# sourceMappingURL=mizzy.es6.map
