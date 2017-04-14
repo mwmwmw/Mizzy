@@ -1,46 +1,58 @@
 import NoteProcessor from "./NoteProcessor";
-const listeners = {};
+import Generate from "./Generate";
 
 export default class Events {
+	constructor() {
+		this.keysPressed = [];
+		this.listeners = {};
+		this.keyboadKeyPressed = [];
+	}
+
 	// take this event name, and run this handler when it occurs
-	static on(event, handler) {
-		if (listeners[event] === undefined) {
-			listeners[event] = [handler];
+	on(event, handler) {
+		if (this.listeners[event] === undefined) {
+			this.listeners[event] = [handler];
 		} else {
-			listeners[event].push(handler);
+			this.listeners[event].push(handler);
 		}
 		return handler;
 	};
 
 	// unbind this event and handler
-	static off(event, handler) {
-		if (listeners[event]) {
-			for (let i = listeners[event].length - 1; i >= 0; i--) {
-				if (listeners[event].length === 1) {
-					delete listeners[event];
+	off(event, handler) {
+		if (this.listeners[event]) {
+			for (let i = this.listeners[event].length - 1; i >= 0; i--) {
+				if (this.listeners[event].length === 1) {
+					delete this.listeners[event];
 				} else {
-					listeners[event].splice(i, 1);
+					this.listeners[event].splice(i, 1);
 					break;
 				}
 			}
 		}
 	};
 
-	static onMIDIMessage(message) {
+	onMIDIMessage(message, key = "C") {
 		let eventName = null, data = null;
 		switch (message.data[0]) {
 			case 128:
 				eventName = "NoteOff";
 				delete this.keysPressed[message.data[1]];
-				data = NoteProcessor.processNoteEvent(message, eventName);
+				data = NoteProcessor.processNoteEvent(message, eventName, key);
 				break;
 			case 144:
+				// handle 0 velocity as a note off event
 				if (message.data[2] > 0) {
 					eventName = "NoteOn";
 				} else {
 					eventName = "NoteOff";
 				}
-				data = NoteProcessor.processNoteEvent(message, eventName);
+				data = NoteProcessor.processNoteEvent(message, eventName, key);
+				if (eventName == "NoteOn") {
+					this.keysPressed[message.data[1]] = data;
+				} else {
+					delete this.keysPressed[message.data[1]];
+				}
 				break;
 			case 176:
 				eventName = "Controller";
@@ -61,17 +73,17 @@ export default class Events {
 		}
 		// if there is no event name, then we don't support that event yet so do nothing.
 		if (eventName !== null) {
-			Events.executeEventHandlers(eventName, data)
+			this.executeEventHandlers(eventName, data)
 		}
 	};
 
 	// loop through all the bound events and execute with the newly processed data.
-	static executeEventHandlers(event, data) {
-		if (listeners[event]) {
-			for (let i = listeners[event].length - 1; i >= 0; i--) {
-				if (listeners[event] !== undefined) {
-					if (typeof listeners[event][i] === "function" && listeners[event][i]) {
-						listeners[event][i](data);
+	executeEventHandlers(event, data) {
+		if (this.listeners[event]) {
+			for (let i = this.listeners[event].length - 1; i >= 0; i--) {
+				if (this.listeners[event] !== undefined) {
+					if (typeof this.listeners[event][i] === "function" && this.listeners[event][i]) {
+						this.listeners[event][i](data);
 					} else {
 						throw "Event handler is not a function.";
 					}
@@ -81,7 +93,7 @@ export default class Events {
 	};
 
 	// EZ binding for Control Change data, just pass in the CC number and handler. Can only be unbound with unbindALL()
-	static onCC(cc, handler) {
+	onCC(cc, handler) {
 		const wrapper = data => {
 			if (data.cc == cc) {
 				handler(data);
@@ -91,7 +103,7 @@ export default class Events {
 	};
 
 	// EZ binding for key presses, bind these two handlers to key on/off. Can only be unbound with unbindALL()
-	static keyToggle(handlerOn, handlerOff) {
+	keyToggle(handlerOn, handlerOff) {
 		this.on("NoteOn", handlerOn);
 		this.on("NoteOff", handlerOff);
 	};
@@ -121,7 +133,7 @@ export default class Events {
 	//     this.on("NoteOn", wrapper);
 	// };
 	// EZ binding for key values. Can only be unbound with unbindALL()
-	static onNoteNumber(number, handler) {
+	onNoteNumber(number, handler) {
 		const wrapper = data => {
 			if (data.value == number) {
 				handler(data);
@@ -131,7 +143,7 @@ export default class Events {
 	};
 
 	// EZ binding for key values. Can only be unbound with unbindALL()
-	static offNoteNumber(number, handler) {
+	offNoteNumber(number, handler) {
 		const wrapper = data => {
 			if (data.value == number) {
 				handler(data);
@@ -141,12 +153,12 @@ export default class Events {
 	};
 
 	// EZ binding for a range of key values, bind these two handlers to key value. Can only be unbound with unbindALL()
-	static keyToggleRange(min, max, onHandler, offHandler) {
+	keyToggleRange(min, max, onHandler, offHandler) {
 		this.onRange(min, max, onHandler);
 		this.offRange(min, max, offHandler);
 	};
 
-	static onRange(min, max, onHandler, offHandler) {
+	onSplit(min, max, onHandler, offHandler) {
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
 				this.onNoteNumber(i, onHandler);
@@ -158,7 +170,7 @@ export default class Events {
 		}
 	};
 
-	static offRange(min, max, onHandler, offHandler) {
+	offSplit(min, max, onHandler, offHandler) {
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
 				this.offNoteNumber(i, offHandler);
@@ -171,119 +183,128 @@ export default class Events {
 	};
 
 	// Removes all bound events.
-	static unbindAll() {
+	unbindAll() {
 		this.unBindKeyboard();
-		for (const event in listeners) {
-			delete listeners[event];
+		for (let event in this.listeners) {
+			delete this.listeners[event];
 		}
 		return true;
 	};
 
-	static bindKeyboard() {
-		window.addEventListener("keydown", this.keyboardKeyDown);
-		window.addEventListener("keyup", this.keyboardKeyUp);
+	bindKeyboard() {
+		window.addEventListener("keydown", (e) => this.keyboardKeyDown(e));
+		window.addEventListener("keyup", (e) => this.keyboardKeyUp(e));
 	};
 
-	static unBindKeyboard() {
-		window.removeEventListener("keydown", this.keyboardKeyDown);
-		window.removeEventListener("keyup", this.keyboardKeyUp);
+	unBindKeyboard() {
+		window.removeEventListener("keydown", (e) => this.keyboardKeyDown(e));
+		window.removeEventListener("keyup", (e) => this.keyboardKeyUp(e));
 	};
 
-	static keyboardKeyDown(message) {
-		let newMessage = null;
-		switch (message.keyCode) {
-			case 90:
-				newMessage = this.createMessage("NoteOn", 60);
-				break;
-			case 83:
-				newMessage = this.createMessage("NoteOn", 61);
-				break;
-			case 88:
-				newMessage = this.createMessage("NoteOn", 62);
-				break;
-			case 68:
-				newMessage = this.createMessage("NoteOn", 63);
-				break;
-			case 67:
-				newMessage = this.createMessage("NoteOn", 64);
-				break;
-			case 86:
-				newMessage = this.createMessage("NoteOn", 65);
-				break;
-			case 71:
-				newMessage = this.createMessage("NoteOn", 66);
-				break;
-			case 66:
-				newMessage = this.createMessage("NoteOn", 67);
-				break;
-			case 72:
-				newMessage = this.createMessage("NoteOn", 68);
-				break;
-			case 78:
-				newMessage = this.createMessage("NoteOn", 69);
-				break;
-			case 74:
-				newMessage = this.createMessage("NoteOn", 70);
-				break;
-			case 77:
-				newMessage = this.createMessage("NoteOn", 71);
-				break;
-			case 188:
-				newMessage = this.createMessage("NoteOn", 72);
-				break;
+	keyboardKeyDown(message) {
+		if (this.keyboadKeyPressed[message.keyCode] != true) {
+			this.keyboadKeyPressed[message.keyCode] = true;
+			let newMessage = null;
+			switch (message.keyCode) {
+				case 90:
+					newMessage = Generate.FakeMessage("NoteOn", 60);
+					break;
+				case 83:
+					newMessage = Generate.FakeMessage("NoteOn", 61);
+					break;
+				case 88:
+					newMessage = Generate.FakeMessage("NoteOn", 62);
+					break;
+				case 68:
+					newMessage = Generate.FakeMessage("NoteOn", 63);
+					break;
+				case 67:
+					newMessage = Generate.FakeMessage("NoteOn", 64);
+					break;
+				case 86:
+					newMessage = Generate.FakeMessage("NoteOn", 65);
+					break;
+				case 71:
+					newMessage = Generate.FakeMessage("NoteOn", 66);
+					break;
+				case 66:
+					newMessage = Generate.FakeMessage("NoteOn", 67);
+					break;
+				case 72:
+					newMessage = Generate.FakeMessage("NoteOn", 68);
+					break;
+				case 78:
+					newMessage = Generate.FakeMessage("NoteOn", 69);
+					break;
+				case 74:
+					newMessage = Generate.FakeMessage("NoteOn", 70);
+					break;
+				case 77:
+					newMessage = Generate.FakeMessage("NoteOn", 71);
+					break;
+				case 188:
+					newMessage = Generate.FakeMessage("NoteOn", 72);
+					break;
+			}
+			if (newMessage !== null) {
+				this.sendMidiMessage(newMessage);
+			}
 		}
-		if (newMessage !== null) {
-			Events.sendMidiMessage(newMessage);
-		}
-
 	};
 
-	static keyboardKeyUp(message) {
-		let newMessage = null;
-		switch (message.keyCode) {
-			case 90:
-				newMessage = this.createMessage("NoteOff", 60);
-				break;
-			case 83:
-				newMessage = this.createMessage("NoteOff", 61);
-				break;
-			case 88:
-				newMessage = this.createMessage("NoteOff", 62);
-				break;
-			case 68:
-				newMessage = this.createMessage("NoteOff", 63);
-				break;
-			case 67:
-				newMessage = this.createMessage("NoteOff", 64);
-				break;
-			case 86:
-				newMessage = this.createMessage("NoteOff", 65);
-				break;
-			case 71:
-				newMessage = this.createMessage("NoteOff", 66);
-				break;
-			case 66:
-				newMessage = this.createMessage("NoteOff", 67);
-				break;
-			case 72:
-				newMessage = this.createMessage("NoteOff", 68);
-				break;
-			case 78:
-				newMessage = this.createMessage("NoteOff", 69);
-				break;
-			case 74:
-				newMessage = this.createMessage("NoteOff", 70);
-				break;
-			case 77:
-				newMessage = this.createMessage("NoteOff", 71);
-				break;
-			case 188:
-				newMessage = this.createMessage("NoteOff", 72);
-				break;
+	keyboardKeyUp(message) {
+		if (this.keyboadKeyPressed[message.keyCode] == true) {
+			delete this.keyboadKeyPressed[message.keyCode];
+			let newMessage = null;
+			switch (message.keyCode) {
+				case 90:
+					newMessage = Generate.FakeMessage("NoteOff", 60);
+					break;
+				case 83:
+					newMessage = Generate.FakeMessage("NoteOff", 61);
+					break;
+				case 88:
+					newMessage = Generate.FakeMessage("NoteOff", 62);
+					break;
+				case 68:
+					newMessage = Generate.FakeMessage("NoteOff", 63);
+					break;
+				case 67:
+					newMessage = Generate.FakeMessage("NoteOff", 64);
+					break;
+				case 86:
+					newMessage = Generate.FakeMessage("NoteOff", 65);
+					break;
+				case 71:
+					newMessage = Generate.FakeMessage("NoteOff", 66);
+					break;
+				case 66:
+					newMessage = Generate.FakeMessage("NoteOff", 67);
+					break;
+				case 72:
+					newMessage = Generate.FakeMessage("NoteOff", 68);
+					break;
+				case 78:
+					newMessage = Generate.FakeMessage("NoteOff", 69);
+					break;
+				case 74:
+					newMessage = Generate.FakeMessage("NoteOff", 70);
+					break;
+				case 77:
+					newMessage = Generate.FakeMessage("NoteOff", 71);
+					break;
+				case 188:
+					newMessage = Generate.FakeMessage("NoteOff", 72);
+					break;
+			}
+			if (newMessage !== null) {
+				this.sendMidiMessage(newMessage);
+			}
 		}
-		if (newMessage !== null) {
-			this.sendMidiMessage(newMessage);
-		}
+	}
+
+	sendMidiMessage(message) {
+
 	}
 
 }

@@ -1,29 +1,22 @@
-import Notation from "./Notation";
 import MIDIData from "./MIDIData";
+import Convert from "./Convert";
+import Notation from "./Notation";
 
 let notes = MIDIData.MidiNotes;
+let keynotes = Notation.KeyNotes;
 
 export default class NoteProcessor {
 	// add all of our extra data to the MIDI message event.
-	static processNoteEvent(message, messageType) {
+	static processNoteEvent(message, eventName, key = "C") {
 		const notes = this.getNoteNames(message.data[1]);
 		const data = {
 			"enharmonics": notes,
-			"note": this.findNoteInKey(notes, this.key),
-			"inKey": this.isNoteInKey(notes, this.key),
+			"note": NoteProcessor.findNoteInKey(notes, key),
+			"inKey": NoteProcessor.isNoteInKey(notes, key),
 			"value": message.data[1],
 			"velocity": message.data[2],
-			"frequency": 440 * Math.pow(2, (message.data[1] - 69) / 12)
+			"frequency": Convert.MIDINoteToFrequency(message.data[1])
 		};
-		switch (messageType) {
-			case "NoteOn":
-				this.keysPressed[message.data[1]] = data;
-				break;
-			case "NoteOff":
-				delete this.keysPressed[message.data[1]];
-				break;
-		}
-		;
 		return Object.assign(message, data);
 	};
 
@@ -67,14 +60,12 @@ export default class NoteProcessor {
 		let noteNames = []; // create a list for the notes
 		for (var note in notes) {
 			// loop through the note table and push notes that match.
-			notes[note].forEach(keynumber =>
-				{
+			notes[note].forEach(keynumber => {
 					if (noteNumber === keynumber) {
 						noteNames.push(note);
 					}
 				}
-			)
-			;
+			);
 		}
 		return noteNames;
 	};
@@ -112,24 +103,5 @@ export default class NoteProcessor {
 		return false;
 	}
 
-	// this.findAccidental = function(notes, key) {
-	//     // are there any enharmonic equivalents
-	//     if (notes.length > 1) {
-	//         // check to see if the first note has an accidental (indicates you're on a black key);
-	//         if(notes[0].length > 1) {
-	//             for (var i = 0; i < notes.length; i++) {
-	//                 var note = notes[i];
-	//                 // does this note match the note in key
-	//                 if (note[note.length - 1] === this.accidentals[key]) {
-	//                     return note;
-	//                 }
-	//             }
-	//             return notes[0];
-	//         } else {
-	//             return notes[0];
-	//         }
-	//     } else {
-	//         return notes[0];
-	//     }
-	// };
 }
+NoteProcessor.keysPressed = [];
