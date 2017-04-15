@@ -3,6 +3,11 @@ import {ENHARMONIC_KEYS} from "./Constants";
 import Generate from "./Generate";
 
 export default class Mizzy extends MIDIEvents {
+
+	static get Generate () {
+		return Generate;
+	}
+
 	constructor() {
 		super();
 		this.keysPressed = [];
@@ -127,4 +132,3 @@ export default class Mizzy extends MIDIEvents {
 		}
 	}
 }
-Mizzy.Generate = Generate;
