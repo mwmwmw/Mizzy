@@ -1,6 +1,6 @@
 {
   "name": "Mizzy",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A MIDI Processing Library",
   "main": "dist/mizzy.cjs.js",
   "jsnext:main": "dist/mizzy.es6.js",
