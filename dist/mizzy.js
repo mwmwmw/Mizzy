@@ -389,13 +389,15 @@ var Generate = function () {
 	}, {
 		key: "NoteEvent",
 		value: function NoteEvent(messageType, value) {
+			var velocity = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 127;
+
 			var data = null;
 			switch (messageType) {
 				case NOTE_ON_EVENT:
-					data = Generate.NoteOn(value, 127);
+					data = Generate.NoteOn(value, velocity);
 					break;
 				case NOTE_OFF_EVENT:
-					data = Generate.NoteOff(value, 127);
+					data = Generate.NoteOff(value, velocity);
 					break;
 			}
 			var newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { "data": data }) || { "data": data };
@@ -735,6 +737,26 @@ var Mizzy = function (_MIDIEvents) {
 		key: "Generate",
 		get: function get$$1() {
 			return Generate;
+		}
+	}, {
+		key: "NOTE_ON",
+		get: function get$$1() {
+			return NOTE_ON_EVENT;
+		}
+	}, {
+		key: "NOTE_OFF",
+		get: function get$$1() {
+			return NOTE_OFF_EVENT;
+		}
+	}, {
+		key: "CONTROLCHANGE",
+		get: function get$$1() {
+			return CONTROLLER_EVENT;
+		}
+	}, {
+		key: "PITCHWHEEL",
+		get: function get$$1() {
+			return PITCHWHEEL_EVENT;
 		}
 	}]);
 

@@ -47,14 +47,14 @@ export default class Generate {
 		return new Uint8Array([MIDI_PITCHBEND, msb, lsb]);
 	}
 
-	static NoteEvent(messageType, value) {
+	static NoteEvent(messageType, value, velocity = 127) {
 		let data = null;
 		switch (messageType) {
 			case NOTE_ON_EVENT:
-				data = Generate.NoteOn(value, 127);
+				data = Generate.NoteOn(value, velocity);
 				break;
 			case NOTE_OFF_EVENT:
-				data = Generate.NoteOff(value, 127);
+				data = Generate.NoteOff(value, velocity);
 				break;
 		}
 		const newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data}) || {"data": data};

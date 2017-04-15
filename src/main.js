@@ -1,11 +1,25 @@
 import MIDIEvents from "./MIDIEvents";
-import {ENHARMONIC_KEYS} from "./Constants";
+import {ENHARMONIC_KEYS, NOTE_ON_EVENT, NOTE_OFF_EVENT, CONTROLLER_EVENT, PITCHWHEEL_EVENT} from "./Constants";
 import Generate from "./Generate";
+
 
 export default class Mizzy extends MIDIEvents {
 
 	static get Generate () {
 		return Generate;
+	}
+
+	static get NOTE_ON () {
+		return NOTE_ON_EVENT;
+	}
+	static get NOTE_OFF () {
+		return NOTE_OFF_EVENT;
+	}
+	static get CONTROLCHANGE() {
+		return CONTROLLER_EVENT;
+	}
+	static get PITCHWHEEL () {
+		return PITCHWHEEL_EVENT;
 	}
 
 	constructor() {
