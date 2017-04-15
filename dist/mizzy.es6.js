@@ -1,61 +1,111 @@
-const midinotes = {
-    "C": [0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120],
-    "D": [2, 14, 26, 38, 50, 62, 74, 86, 98, 110, 122],
-    "E": [4, 16, 28, 40, 52, 64, 76, 88, 100, 112, 124],
-    "F": [5, 17, 29, 41, 53, 65, 77, 89, 101, 113, 125],
-    "G": [7, 19, 31, 43, 55, 67, 79, 91, 103, 115, 127],
-    "A": [9, 21, 33, 45, 57, 69, 81, 93, 105, 117],
-    "B": [11, 23, 35, 47, 59, 71, 83, 95, 107, 119],
-    "C#": [1, 13, 25, 37, 49, 61, 73, 85, 97, 109, 121],
-    "D#": [3, 15, 27, 39, 51, 63, 75, 87, 99, 111, 123],
-    "E#": [5, 17, 29, 41, 53, 65, 77, 89, 101, 113, 125],
-    "F#": [6, 18, 30, 42, 54, 66, 78, 90, 102, 114, 126],
-    "G#": [8, 20, 32, 44, 56, 68, 80, 92, 104, 116],
-    "A#": [10, 22, 34, 46, 58, 70, 82, 94, 106, 118],
-    "B#": [0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120],
-    "Db": [1, 13, 25, 37, 49, 61, 73, 85, 97, 109, 121],
-    "Eb": [3, 15, 27, 39, 51, 63, 75, 87, 99, 111, 123],
-    "Fb": [4, 16, 28, 40, 52, 64, 76, 88, 100, 112, 124],
-    "Gb": [6, 18, 30, 42, 54, 66, 78, 90, 102, 114, 126],
-    "Ab": [8, 20, 32, 44, 56, 68, 80, 92, 104, 116],
-    "Bb": [10, 22, 34, 46, 58, 70, 82, 94, 106, 118],
-    "Cb": [11, 23, 35, 47, 59, 71, 83, 95, 107, 119]
-};
+class Events {
+	constructor() {
+		this.listeners = {};
+	}
 
-const noteon = 0x90;
-const noteoff = 0x80;
-const aftertouch = 0xA0;
-const controlchange = 0xB0;
-const programchange = 0xC0;
-const channelpressure = 0xD0;
-const pitchbend = 0xE0;
+	// take this event name, and run this handler when it occurs
+	on(event, handler) {
+		if (this.listeners[event] === undefined) {
+			this.listeners[event] = [handler];
+		} else {
+			this.listeners[event].push(handler);
+		}
+		return handler;
+	};
 
-class MIDIData {
-
-    static get MidiNotes () { return midinotes; }
-    static get NoteOff() {return noteoff; }
-    static get NoteOn() {return noteon; }
-    static get AfterTouch() {return aftertouch;}
-    static get ControlChange() {return controlchange;}
-    static get ProgramChange() {return programchange;}
-    static get ChannelPressure() {return channelpressure;}
-    static get PitchBend() {return pitchbend;}
+	// unbind this event and handler
+	off(event) {
+		if (this.listeners[event]) {
+			for (let i = this.listeners[event].length - 1; i >= 0; i--) {
+				if (this.listeners[event].length === 1) {
+					delete this.listeners[event];
+				} else {
+					this.listeners[event].splice(i, 1);
+					break;
+				}
+			}
+		}
+	};
 }
 
 class Convert {
 
 	static MIDINoteToFrequency(midinote, tune = 440) {
-		return tune * Math.pow(2, (message.data[1] - 69) / 12)
+		return tune * Math.pow(2, (midinote - 69) / 12)
 	}
 
 
 }
 
-let notes = MIDIData.MidiNotes;
+const MIDI_MESSAGE_EVENT = "midimessage";
+
+const NOTE_ON_EVENT = "NoteOn";
+const NOTE_OFF_EVENT = "NoteOff";
+const PITCHWHEEL_EVENT = "PitchWheel";
+const CONTROLLER_EVENT = "Controller";
+const PROGRAM_CHANGE_EVENT = "ProgramChange";
+const AFTERTOUCH_EVENT = "Aftertouch";
+
+const KEYBOARD_EVENT_KEY_DOWN = "keydown";
+const KEYBOARD_EVENT_KEY_UP = "keyup";
+
+const MIDI_NOTE_MAP = {
+	"C": [0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120],
+	"D": [2, 14, 26, 38, 50, 62, 74, 86, 98, 110, 122],
+	"E": [4, 16, 28, 40, 52, 64, 76, 88, 100, 112, 124],
+	"F": [5, 17, 29, 41, 53, 65, 77, 89, 101, 113, 125],
+	"G": [7, 19, 31, 43, 55, 67, 79, 91, 103, 115, 127],
+	"A": [9, 21, 33, 45, 57, 69, 81, 93, 105, 117],
+	"B": [11, 23, 35, 47, 59, 71, 83, 95, 107, 119],
+	"C#": [1, 13, 25, 37, 49, 61, 73, 85, 97, 109, 121],
+	"D#": [3, 15, 27, 39, 51, 63, 75, 87, 99, 111, 123],
+	"E#": [5, 17, 29, 41, 53, 65, 77, 89, 101, 113, 125],
+	"F#": [6, 18, 30, 42, 54, 66, 78, 90, 102, 114, 126],
+	"G#": [8, 20, 32, 44, 56, 68, 80, 92, 104, 116],
+	"A#": [10, 22, 34, 46, 58, 70, 82, 94, 106, 118],
+	"B#": [0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120],
+	"Db": [1, 13, 25, 37, 49, 61, 73, 85, 97, 109, 121],
+	"Eb": [3, 15, 27, 39, 51, 63, 75, 87, 99, 111, 123],
+	"Fb": [4, 16, 28, 40, 52, 64, 76, 88, 100, 112, 124],
+	"Gb": [6, 18, 30, 42, 54, 66, 78, 90, 102, 114, 126],
+	"Ab": [8, 20, 32, 44, 56, 68, 80, 92, 104, 116],
+	"Bb": [10, 22, 34, 46, 58, 70, 82, 94, 106, 118],
+	"Cb": [11, 23, 35, 47, 59, 71, 83, 95, 107, 119]
+};
+
+const MIDI_NOTE_ON = 0x90;
+const MIDI_NOTE_OFF = 0x80;
+const MIDI_AFTERTOUCH = 0xA0;
+const MIDI_CONTROL_CHANGE = 0xB0;
+const MIDI_PROGRAM_CHANGE = 0xC0;
+const MIDI_CHANNEL_PRESSURE = 0xD0;
+const MIDI_PITCHBEND = 0xE0;
+
+
+
+const KEY_NOTE_ARRAYS = {
+	"C": ["C", "D", "E", "F", "G", "A", "B"],
+	"G": ["G", "A", "B", "C", "D", "E", "F#"],
+	"D": ["D", "E", "F#", "G", "A", "B", "C#"],
+	"A": ["A", "B", "C#", "D", "E", "F#", "G#"],
+	"E": ["E", "F#", "G#", "A", "B", "C#", "D#"],
+	"B": ["B", "C#", "D#", "E", "F#", "G#", "A#"],
+	"F#": ["F#", "G#", "A#", "B", "C#", "D#", "E#"],
+	"C#": ["C#", "D#", "E#", "F#", "G#", "A#", "B#"],
+	"Cb": ["Cb", "Db", "Eb", "Fb", "Gb", "Ab", "Bb"],
+	"Gb": ["Gb", "Ab", "Bb", "Cb", "Db", "Eb", "F"],
+	"Db": ["Db", "Eb", "F", "Gb", "Ab", "Bb", "C"],
+	"Ab": ["Ab", "Bb", "C", "Db", "Eb", "F", "G"],
+	"Eb": ["Eb", "F", "G", "Ab", "Bb", "C", "D"],
+	"Bb": ["Bb", "C", "D", "Eb", "F", "G", "A"],
+	"F": ["F", "G", "A", "Bb", "C", "D", "E"]
+};
+
+const ENHARMONIC_KEYS = ["C", "G", "D", "A", "E", "B", "Cb", "F#", "Gb", "C#", "Db", "Ab", "Eb", "Bb", "F"];
 
 class NoteProcessor {
 	// add all of our extra data to the MIDI message event.
-	static processNoteEvent(message, key = "C") {
+	static processNoteEvent(message, eventName, key = "C") {
 		const notes = this.getNoteNames(message.data[1]);
 		const data = {
 			"enharmonics": notes,
@@ -65,14 +115,6 @@ class NoteProcessor {
 			"velocity": message.data[2],
 			"frequency": Convert.MIDINoteToFrequency(message.data[1])
 		};
-		// switch (messageType) {
-		// 	case "NoteOn":
-		// 		NoteProcessor.keysPressed[message.data[1]] = data;
-		// 		break;
-		// 	case "NoteOff":
-		// 		delete NoteProcessor.keysPressed[message.data[1]];
-		// 		break;
-		// };
 		return Object.assign(message, data);
 	};
 
@@ -114,9 +156,9 @@ class NoteProcessor {
 	// get a list of notes that match this noteNumber
 	static getNoteNames(noteNumber) {
 		let noteNames = []; // create a list for the notes
-		for (var note in notes) {
+		for (var note in MIDI_NOTE_MAP) {
 			// loop through the note table and push notes that match.
-			notes[note].forEach(keynumber => {
+			MIDI_NOTE_MAP[note].forEach(keynumber => {
 					if (noteNumber === keynumber) {
 						noteNames.push(note);
 					}
@@ -150,8 +192,8 @@ class NoteProcessor {
 	}
 
 	static matchNoteInKey(note, key) {
-		for (let i = 0; i < keynotes[key].length; i++) {
-			const keynote = keynotes[key][i];
+		for (let i = 0; i < KEY_NOTE_ARRAYS[key].length; i++) {
+			const keynote = KEY_NOTE_ARRAYS[key][i];
 			if (note === keynote) {
 				return true;
 			}
@@ -160,81 +202,115 @@ class NoteProcessor {
 	}
 
 }
-NoteProcessor.keysPressed = [];
 
-const listeners = {};
+class Generate {
 
-class Events {
-	// take this event name, and run this handler when it occurs
-	static on(event, handler) {
-		if (listeners[event] === undefined) {
-			listeners[event] = [handler];
-		} else {
-			listeners[event].push(handler);
+	static NoteOn(noteNumber, velocity) {
+		return new Uint8Array([MIDI_NOTE_ON, noteNumber, velocity]);
+	}
+
+	static NoteOff(noteNumber, velocity) {
+		return new Uint8Array([MIDI_NOTE_OFF, noteNumber, velocity]);
+	}
+
+	static AfterTouch(noteNumber, value) {
+		return new Uint8Array([MIDI_AFTERTOUCH, noteNumber, value]);
+	}
+
+	static ControlChange(controller, value) {
+		return new Uint8Array([MIDI_CONTROL_CHANGE, controller, value]);
+	}
+
+	static ProgramChange(instrument) {
+		return new Uint8Array([MIDI_PROGRAM_CHANGE, instrument]);
+	}
+
+	static ChannelPressure(pressure) {
+		return new Uint8Array([MIDI_CHANNEL_PRESSURE, pressure]);
+	}
+
+	static PitchBend(value) {
+		// @todo http://stackoverflow.com/questions/30911185/javascript-reading-3-bytes-buffer-as-an-integer
+		var msb = 1,
+			lsb = 1;
+		return new Uint8Array([MIDI_PITCHBEND, msb, lsb]);
+	}
+
+	static FakeMessage(messageType, value) {
+		let data = null;
+		switch (messageType) {
+			case NOTE_ON_EVENT:
+				data = Generate.NoteOn(value, 127);
+				break;
+			case NOTE_OFF_EVENT:
+				data = Generate.NoteOff(value, 127);
+				break;
 		}
-		return handler;
-	};
+		const newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data}) || {"data": data};
+		return NoteProcessor.processNoteEvent(newMessage, messageType, this.key);
+	}
 
-	// unbind this event and handler
-	static off(event, handler) {
-		if (listeners[event]) {
-			for (let i = listeners[event].length - 1; i >= 0; i--) {
-				if (listeners[event].length === 1) {
-					delete listeners[event];
-				} else {
-					listeners[event].splice(i, 1);
-					break;
-				}
-			}
-		}
-	};
+}
 
-	static onMIDIMessage(message, key = "C") {
+class MIDIEvents extends Events {
+	constructor() {
+		super();
+		this.keysPressed = [];
+		this.keyboadKeyPressed = [];
+	}
+
+	onMIDIMessage(message, key = ENHARMONIC_KEYS[0]) {
 		let eventName = null, data = null;
 		switch (message.data[0]) {
 			case 128:
-				eventName = "NoteOff";
+				eventName = NOTE_OFF_EVENT;
 				delete this.keysPressed[message.data[1]];
 				data = NoteProcessor.processNoteEvent(message, eventName, key);
 				break;
 			case 144:
+				// handle 0 velocity as a note off event
 				if (message.data[2] > 0) {
-					eventName = "NoteOn";
+					eventName = NOTE_ON_EVENT;
 				} else {
-					eventName = "NoteOff";
+					eventName = NOTE_OFF_EVENT;
 				}
 				data = NoteProcessor.processNoteEvent(message, eventName, key);
+				if (eventName == NOTE_ON_EVENT) {
+					this.keysPressed[message.data[1]] = data;
+				} else {
+					delete this.keysPressed[message.data[1]];
+				}
 				break;
 			case 176:
-				eventName = "Controller";
+				eventName = CONTROLLER_EVENT;
 				data = NoteProcessor.processCCEvent(message);
 				break;
 			case 224:
-				eventName = "PitchWheel";
+				eventName = PITCHWHEEL_EVENT;
 				data = NoteProcessor.processPitchWheel(message);
 				break;
 			case 208:
-				eventName = "Aftertouch";
+				eventName = AFTERTOUCH_EVENT;
 				data = NoteProcessor.processMidiControlEvent(message, eventName);
 				break;
 			case 192:
-				eventName = "ProgramChange";
+				eventName = PROGRAM_CHANGE_EVENT;
 				data = NoteProcessor.processMidiControlEvent(message, eventName);
 				break;
 		}
 		// if there is no event name, then we don't support that event yet so do nothing.
 		if (eventName !== null) {
-			Events.executeEventHandlers(eventName, data);
+			this.executeEventHandlers(eventName, data);
 		}
 	};
 
 	// loop through all the bound events and execute with the newly processed data.
-	static executeEventHandlers(event, data) {
-		if (listeners[event]) {
-			for (let i = listeners[event].length - 1; i >= 0; i--) {
-				if (listeners[event] !== undefined) {
-					if (typeof listeners[event][i] === "function" && listeners[event][i]) {
-						listeners[event][i](data);
+	executeEventHandlers(event, data) {
+		if (this.listeners[event]) {
+			for (let i = this.listeners[event].length - 1; i >= 0; i--) {
+				if (this.listeners[event] !== undefined) {
+					if (typeof this.listeners[event][i] === "function" && this.listeners[event][i]) {
+						this.listeners[event][i](data);
 					} else {
 						throw "Event handler is not a function.";
 					}
@@ -244,19 +320,19 @@ class Events {
 	};
 
 	// EZ binding for Control Change data, just pass in the CC number and handler. Can only be unbound with unbindALL()
-	static onCC(cc, handler) {
+	onCC(cc, handler) {
 		const wrapper = data => {
 			if (data.cc == cc) {
 				handler(data);
 			}
 		};
-		this.on("Controller", wrapper);
+		this.on(CONTROLLER_EVENT, wrapper);
 	};
 
 	// EZ binding for key presses, bind these two handlers to key on/off. Can only be unbound with unbindALL()
-	static keyToggle(handlerOn, handlerOff) {
-		this.on("NoteOn", handlerOn);
-		this.on("NoteOff", handlerOff);
+	keyToggle(handlerOn, handlerOff) {
+		this.on(NOTE_ON_EVENT, handlerOn);
+		this.on(NOTE_OFF_EVENT, handlerOff);
 	};
 
 	// currently broken. will bind an event to particular keypress.
@@ -281,35 +357,35 @@ class Events {
 	//             })
 	//         }
 	//     };
-	//     this.on("NoteOn", wrapper);
+	//     this.on(NOTE_ON_EVENT, wrapper);
 	// };
 	// EZ binding for key values. Can only be unbound with unbindALL()
-	static onNoteNumber(number, handler) {
+	onNoteNumber(number, handler) {
 		const wrapper = data => {
 			if (data.value == number) {
 				handler(data);
 			}
 		};
-		this.on("NoteOn", wrapper);
+		this.on(NOTE_ON_EVENT, wrapper);
 	};
 
 	// EZ binding for key values. Can only be unbound with unbindALL()
-	static offNoteNumber(number, handler) {
+	offNoteNumber(number, handler) {
 		const wrapper = data => {
 			if (data.value == number) {
 				handler(data);
 			}
 		};
-		this.on("NoteOff", wrapper);
+		this.on(NOTE_OFF_EVENT, wrapper);
 	};
 
 	// EZ binding for a range of key values, bind these two handlers to key value. Can only be unbound with unbindALL()
-	static keyToggleRange(min, max, onHandler, offHandler) {
+	keyToggleRange(min, max, onHandler, offHandler) {
 		this.onRange(min, max, onHandler);
 		this.offRange(min, max, offHandler);
 	};
 
-	static onRange(min, max, onHandler, offHandler) {
+	onSplit(min, max, onHandler, offHandler) {
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
 				this.onNoteNumber(i, onHandler);
@@ -321,7 +397,7 @@ class Events {
 		}
 	};
 
-	static offRange(min, max, onHandler, offHandler) {
+	offSplit(min, max, onHandler, offHandler) {
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
 				this.offNoteNumber(i, offHandler);
@@ -334,190 +410,143 @@ class Events {
 	};
 
 	// Removes all bound events.
-	static unbindAll() {
+	unbindAll() {
 		this.unBindKeyboard();
-		for (const event in listeners) {
-			delete listeners[event];
+		for (let event in this.listeners) {
+			delete this.listeners[event];
 		}
 		return true;
 	};
 
-	static bindKeyboard() {
-		window.addEventListener("keydown", this.keyboardKeyDown);
-		window.addEventListener("keyup", this.keyboardKeyUp);
+	bindKeyboard() {
+		window.addEventListener(KEYBOARD_EVENT_KEY_DOWN, (e) => this.keyboardKeyDown(e));
+		window.addEventListener(KEYBOARD_EVENT_KEY_UP, (e) => this.keyboardKeyUp(e));
 	};
 
-	static unBindKeyboard() {
-		window.removeEventListener("keydown", this.keyboardKeyDown);
-		window.removeEventListener("keyup", this.keyboardKeyUp);
+	unBindKeyboard() {
+		window.removeEventListener(KEYBOARD_EVENT_KEY_DOWN, (e) => this.keyboardKeyDown(e));
+		window.removeEventListener(KEYBOARD_EVENT_KEY_UP, (e) => this.keyboardKeyUp(e));
 	};
 
-	static keyboardKeyDown(message) {
-		let newMessage = null;
-		switch (message.keyCode) {
-			case 90:
-				newMessage = this.createMessage("NoteOn", 60);
-				break;
-			case 83:
-				newMessage = this.createMessage("NoteOn", 61);
-				break;
-			case 88:
-				newMessage = this.createMessage("NoteOn", 62);
-				break;
-			case 68:
-				newMessage = this.createMessage("NoteOn", 63);
-				break;
-			case 67:
-				newMessage = this.createMessage("NoteOn", 64);
-				break;
-			case 86:
-				newMessage = this.createMessage("NoteOn", 65);
-				break;
-			case 71:
-				newMessage = this.createMessage("NoteOn", 66);
-				break;
-			case 66:
-				newMessage = this.createMessage("NoteOn", 67);
-				break;
-			case 72:
-				newMessage = this.createMessage("NoteOn", 68);
-				break;
-			case 78:
-				newMessage = this.createMessage("NoteOn", 69);
-				break;
-			case 74:
-				newMessage = this.createMessage("NoteOn", 70);
-				break;
-			case 77:
-				newMessage = this.createMessage("NoteOn", 71);
-				break;
-			case 188:
-				newMessage = this.createMessage("NoteOn", 72);
-				break;
+	keyboardKeyDown(message) {
+		if (this.keyboadKeyPressed[message.keyCode] != true) {
+			this.keyboadKeyPressed[message.keyCode] = true;
+			let newMessage = null;
+			switch (message.keyCode) {
+				case 90:
+					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 60);
+					break;
+				case 83:
+					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 61);
+					break;
+				case 88:
+					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 62);
+					break;
+				case 68:
+					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 63);
+					break;
+				case 67:
+					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 64);
+					break;
+				case 86:
+					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 65);
+					break;
+				case 71:
+					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 66);
+					break;
+				case 66:
+					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 67);
+					break;
+				case 72:
+					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 68);
+					break;
+				case 78:
+					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 69);
+					break;
+				case 74:
+					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 70);
+					break;
+				case 77:
+					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 71);
+					break;
+				case 188:
+					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 72);
+					break;
+			}
+			if (newMessage !== null) {
+				this.sendMidiMessage(newMessage);
+			}
 		}
-		if (newMessage !== null) {
-			Events.sendMidiMessage(newMessage);
-		}
-
 	};
 
-	static keyboardKeyUp(message) {
-		let newMessage = null;
-		switch (message.keyCode) {
-			case 90:
-				newMessage = this.createMessage("NoteOff", 60);
-				break;
-			case 83:
-				newMessage = this.createMessage("NoteOff", 61);
-				break;
-			case 88:
-				newMessage = this.createMessage("NoteOff", 62);
-				break;
-			case 68:
-				newMessage = this.createMessage("NoteOff", 63);
-				break;
-			case 67:
-				newMessage = this.createMessage("NoteOff", 64);
-				break;
-			case 86:
-				newMessage = this.createMessage("NoteOff", 65);
-				break;
-			case 71:
-				newMessage = this.createMessage("NoteOff", 66);
-				break;
-			case 66:
-				newMessage = this.createMessage("NoteOff", 67);
-				break;
-			case 72:
-				newMessage = this.createMessage("NoteOff", 68);
-				break;
-			case 78:
-				newMessage = this.createMessage("NoteOff", 69);
-				break;
-			case 74:
-				newMessage = this.createMessage("NoteOff", 70);
-				break;
-			case 77:
-				newMessage = this.createMessage("NoteOff", 71);
-				break;
-			case 188:
-				newMessage = this.createMessage("NoteOff", 72);
-				break;
+	keyboardKeyUp(message) {
+		if (this.keyboadKeyPressed[message.keyCode] == true) {
+			delete this.keyboadKeyPressed[message.keyCode];
+			let newMessage = null;
+			switch (message.keyCode) {
+				case 90:
+					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 60);
+					break;
+				case 83:
+					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 61);
+					break;
+				case 88:
+					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 62);
+					break;
+				case 68:
+					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 63);
+					break;
+				case 67:
+					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 64);
+					break;
+				case 86:
+					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 65);
+					break;
+				case 71:
+					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 66);
+					break;
+				case 66:
+					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 67);
+					break;
+				case 72:
+					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 68);
+					break;
+				case 78:
+					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 69);
+					break;
+				case 74:
+					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 70);
+					break;
+				case 77:
+					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 71);
+					break;
+				case 188:
+					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 72);
+					break;
+			}
+			if (newMessage !== null) {
+				this.sendMidiMessage(newMessage);
+			}
 		}
-		if (newMessage !== null) {
-			this.sendMidiMessage(newMessage);
-		}
+	}
+
+	sendMidiMessage(message) {
+
 	}
 
 }
 
-class Generate {
-
-    static NoteOn (noteNumber, velocity) { new Uint8Array([MIDIData.NoteOn, noteNumber, velocity]); }
-    static NoteOff (noteNumber, velocity) { new Uint8Array([MIDIData.NoteOff, noteNumber, velocity]);}
-    static AfterTouch (noteNumber, value) {new Uint8Array([MIDIData.AfterTouch, noteNumber, value]);}
-    static ControlChange (controller, value) {new Uint8Array([MIDIData.ControlChange,controller, value ]);}
-    static ProgramChange (instrument) {new Uint8Array([MIDIData.ProgramChange, instrument]);}
-    static ChannelPressure (pressure) {new Uint8Array([MIDIData.ChannelPressure, pressure]);}
-    static PitchBend (value) {
-        // @todo http://stackoverflow.com/questions/30911185/javascript-reading-3-bytes-buffer-as-an-integer
-        var msb = 1,
-            lsb = 1;
-        new Uint8Array([MIDIData.ChannelPressure, msb, lsb]);
-    }
-}
-
-const accidentals = {
-    "C"  : "#",
-    "G"  : "#",
-    "D"  : "#",
-    "A"  : "#",
-    "E"  : "#",
-    "B"  : "#",
-    "Cb" : "b",
-    "F#" : "#",
-    "Gb" : "b",
-    "C#" : "#",
-    "Db" : "b",
-    "Ab" : "b",
-    "Eb" : "b",
-    "Bb" : "b",
-    "F"  : "b"
-};
-
-const keynotes$1 = {
-    "C":  ["C", "D", "E", "F", "G", "A", "B"],
-    "G":  ["G", "A", "B", "C", "D", "E", "F#"],
-    "D":  ["D", "E", "F#", "G", "A", "B", "C#"],
-    "A":  ["A", "B", "C#", "D", "E", "F#", "G#"],
-    "E":  ["E", "F#", "G#", "A", "B", "C#", "D#"],
-    "B":  ["B", "C#", "D#", "E", "F#", "G#", "A#"],
-    "F#": ["F#", "G#", "A#", "B", "C#", "D#", "E#"],
-    "C#": ["C#", "D#", "E#", "F#", "G#", "A#", "B#"],
-    "Cb": ["Cb", "Db", "Eb", "Fb", "Gb", "Ab", "Bb"],
-    "Gb": ["Gb", "Ab", "Bb", "Cb", "Db", "Eb", "F"],
-    "Db": ["Db", "Eb", "F", "Gb", "Ab", "Bb", "C"],
-    "Ab": ["Ab", "Bb", "C", "Db", "Eb", "F", "G"],
-    "Eb": ["Eb", "F", "G", "Ab", "Bb", "C", "D"],
-    "Bb": ["Bb", "C", "D", "Eb", "F", "G", "A"],
-    "F":  ["F", "G", "A", "Bb", "C", "D", "E"]
-};
-
-const keys = ["C", "G", "D", "A", "E", "B", "Cb", "F#", "Gb", "C#", "Db", "Ab", "Eb","Bb","F"];
-
-class Notation {
-    static get Keys () { return keys; }
-    static get KeyNotes () { return keynotes$1; }
-    static get Accidentals () {return accidentals; }
-}
-
-class Mizzy {
+class Mizzy extends MIDIEvents {
 	constructor() {
+		super();
 		this.keysPressed = [];
 		this.midiAccess = null;
 		this.loopback = true;
-		this.initialize();
-		this.key = Notation.Keys[0]; // C-Major
+
+		this.boundInputs = [];
+		this.boundOutputs = [];
+
+		this.key = ENHARMONIC_KEYS[0]; // C-Major
 		if (!window.MIDIMessageEvent) {
 			window.MIDIMessageEvent = (name, params) => {
 				this.name = name;
@@ -527,100 +556,105 @@ class Mizzy {
 
 	}
 
-	setKey (keyname) {
+	initialize() {
+		if (this.midiAccess === null) {
+			if (navigator.requestMIDIAccess) {
+				return navigator.requestMIDIAccess({
+					sysex: false
+				}).then((e) => this.onMIDISuccess(e), (e) => this.onMIDIFailure(e));
+			} else {
+				throw "Your browser has no midi support";
+			}
+		}
+	}
+
+	setKey(keyname) {
 		this.key = keyname;
 	}
 
 	getMidiInputs() {
-		if(this.midiAccess != null) {
+		if (this.midiAccess != null) {
 			return this.midiAccess.inputs.values();
 		}
 	}
 
 	getMidiOutputs() {
-		if(this.midiAccess != null) {
+		if (this.midiAccess != null) {
 			return this.midiAccess.outputs.values();
 		}
 	}
 
-	getMidiOutputDevices () {
+
+	get outputDevices() {
 		let deviceArray = [];
 		let devices = this.getMidiOutputs();
 		for (let input = devices.next(); input && !input.done; input = devices.next()) {
-			console.log(input);
+			deviceArray.push(input.value);
 		}
+		return deviceArray;
 	}
 
-	getMidiInputDevices () {
+	get inputDevices() {
 		let deviceArray = [];
 		let devices = this.getMidiInputs();
 		for (let input = devices.next(); input && !input.done; input = devices.next()) {
-			console.log(input);
+			deviceArray.push(input.value);
 		}
+		return deviceArray;
 	}
 
 	bindToInput(input) {
-		input.value.onmidimessage = () => Events.onMIDIMessage;
+		this.boundInputs.push(input);
+		input.onmidimessage = (e) => this.onMIDIMessage(e);
 	}
 
-	bindToAllInputs () {
-		if(this.midiAccess != null) {
+	unbindInput(input) {
+		var index = this.boundInputs.indexOf(input);
+		this.boundInputs.slice(1, index);
+		input.onmidimessage = null;
+	}
+
+	bindToAllInputs() {
+		if (this.midiAccess != null) {
 			let inputs = this.getMidiInputs();
 			for (let input = inputs.next(); input && !input.done; input = inputs.next()) {
-				this.bindToInput(input);
+				this.bindToInput(input.value);
 			}
 		}
 	}
 
-	onMIDIFailure (error) {
+	unbindAllInputs() {
+		this.boundInputs.forEach(this.unbindInput);
+	}
+
+	bindToOutput(output) {
+		this.boundOutputs.push(output);
+	}
+
+	bindToAllOutputs() {
+		if (this.midiAccess != null) {
+			let outputs = this.getMidiOutputs();
+			for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
+				this.bindToOutput(output.value);
+			}
+		}
+	}
+
+	onMIDIFailure(error) {
 		throw error
 	}
 
-	onMIDISuccess (midiAccessObj) {
+	onMIDISuccess(midiAccessObj) {
 		this.midiAccess = midiAccessObj;
 	}
 
-	initialize() {
-		if (this.midiAccess === null) {
-			if (navigator.requestMIDIAccess) {
-				navigator.requestMIDIAccess({
-					sysex: false
-				}).then((e) => this.onMIDISuccess(e), (e) => this.onMIDIFailure(e));
-			} else {
-				alert("No MIDI support in your browser.");
-			}
-		}
-	}
-
 	sendMidiMessage(message) {
-
-		if (this.midiAccess !== null) {
-			const outputs = midiAccess.outputs.values();
-			for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
-				output.value.send(message.data, message.timeStamp);
-			}
-		}
+		this.boundOutputs.forEach((output) => {
+			output.send(message.data, message.timeStamp);
+		});
 		if (this.loopback) {
-			this.loopBackMidiMessage(message);
+			this.onMIDIMessage(message, this.key);
 		}
-	}
-
-	createMessage(messageType, value) {
-		let data = null;
-		switch (messageType) {
-			case "NoteOn":
-				data = Generate.NoteOn(value, 127);
-				break;
-			case "NoteOff":
-				data = Generate.NoteOff(value, 127);
-				break;
-		}
-		const newMessage = new MIDIMessageEvent("midimessage", {"data": data}) || {"data": data};
-		return NoteProcessor.processNoteEvent(newMessage, messageType, this.key);
-	}
-
-	loopBackMidiMessage(message) {
-		Events.onMIDIMessage(message, this.key);
 	}
 }
 
