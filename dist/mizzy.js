@@ -108,6 +108,10 @@ var Events = function () {
 	return Events;
 }();
 
+var GLOBAL_TUNE = 440;
+var MIDI_14BIT_MAX_VALUE = 16384;
+var MIDI_MAX_VALUE = 127;
+
 var Convert = function () {
 	function Convert() {
 		classCallCheck(this, Convert);
@@ -116,9 +120,30 @@ var Convert = function () {
 	createClass(Convert, null, [{
 		key: "MIDINoteToFrequency",
 		value: function MIDINoteToFrequency(midinote) {
-			var tune = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 440;
+			var tune = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : GLOBAL_TUNE;
 
-			return tune * Math.pow(2, (midinote - 69) / 12);
+			return tune * Math.pow(2, (midinote - 69) / 12); //
+		}
+	}, {
+		key: "PitchWheelToPolar",
+		value: function PitchWheelToPolar(raw) {
+			return -(MIDI_14BIT_MAX_VALUE * 0.5 - raw);
+		}
+	}, {
+		key: "PitchWheelToPolarRatio",
+		value: function PitchWheelToPolarRatio(raw) {
+			return Convert.PitchWheelToPolar(raw) / (MIDI_14BIT_MAX_VALUE * 0.5);
+		}
+	}, {
+		key: "MidiValueToRatio",
+		value: function MidiValueToRatio(value) {
+			return value / MIDI_MAX_VALUE;
+		}
+	}, {
+		key: "MidiValueToPolarRatio",
+		value: function MidiValueToPolarRatio(value) {
+			var halfmax = MIDI_MAX_VALUE * 0.5;
+			return -(halfmax - value) / halfmax;
 		}
 	}]);
 	return Convert;
@@ -190,23 +215,23 @@ var KEY_NOTE_ARRAYS = {
 	"F": ["F", "G", "A", "Bb", "C", "D", "E"]
 };
 
-var NoteProcessor = function () {
-	function NoteProcessor() {
-		classCallCheck(this, NoteProcessor);
+var DataProcess = function () {
+	function DataProcess() {
+		classCallCheck(this, DataProcess);
 	}
 
-	createClass(NoteProcessor, null, [{
-		key: "processNoteEvent",
+	createClass(DataProcess, null, [{
+		key: "NoteEvent",
 
 		// add all of our extra data to the MIDI message event.
-		value: function processNoteEvent(message, eventName) {
+		value: function NoteEvent(message, eventName) {
 			var key = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : ENHARMONIC_KEYS[0];
 
 			var notes = this.getNoteNames(message.data[1]);
 			var data = {
 				"enharmonics": notes,
-				"note": NoteProcessor.findNoteInKey(notes, key),
-				"inKey": NoteProcessor.isNoteInKey(notes, key),
+				"note": DataProcess.findNoteInKey(notes, key),
+				"inKey": DataProcess.isNoteInKey(notes, key),
 				"value": message.data[1],
 				"velocity": message.data[2],
 				"frequency": Convert.MIDINoteToFrequency(message.data[1])
@@ -214,46 +239,42 @@ var NoteProcessor = function () {
 			return Object.assign(message, data);
 		}
 	}, {
-		key: "processCCEvent",
+		key: "CCEvent",
 
 
 		// add all of our extra data to the MIDI message event.
-		value: function processCCEvent(message, ccNameOverride) {
-			Object.assign(message, {
+		value: function CCEvent(message, ccNameOverride) {
+			return Object.assign(message, {
 				"cc": ccNameOverride || message.data[1],
 				"value": message.data[2],
-				"ratio": message.data[2] / 127,
-				"timestamp": message.receivedTime
+				"ratio": Convert.MidiValueToRatio(message.data[2]),
+				"polarRatio": Convert.MidiValueToPolarRatio(message.data[2])
 			});
 		}
 
 		// add all of our extra data to the MIDI message event.
 
 	}, {
-		key: "processMidiControlEvent",
-		value: function processMidiControlEvent(message, controlName) {
-			Object.assign(message, {
+		key: "MidiControlEvent",
+		value: function MidiControlEvent(message, controlName) {
+			return Object.assign(message, {
 				"cc": controlName,
 				"value": message.data[1],
-				"ratio": message.data[1] / 127,
-				"timestamp": message.receivedTime
+				"ratio": Convert.MidiValueToRatio(message.data[2])
 			});
 		}
 
 		// add all of our extra data to the MIDI message event.
 
 	}, {
-		key: "processPitchWheel",
-		value: function processPitchWheel(message) {
-			var raw = message.data[1] | message.data[2] << 7,
-			    calc = -(8192 - raw),
-			    ratio = calc / 8192;
+		key: "PitchWheel",
+		value: function PitchWheel(message) {
+			var raw = message.data[1] | message.data[2] << 7;
 			return Object.assign(message, {
 				"cc": "pitchwheel",
 				"value": raw,
-				"polar": calc,
-				"polarRatio": ratio,
-				"timestamp": message.receivedTime
+				"polar": Convert.PitchWheelToPolar(raw),
+				"polarRatio": Convert.PitchWheelToPolarRatio(raw)
 			});
 		}
 
@@ -285,7 +306,7 @@ var NoteProcessor = function () {
 			// loop through the note list
 			for (var i = 0; i < notes.length; i++) {
 				var note = notes[i];
-				if (this.matchNoteInKey(note, key)) {
+				if (DataProcess.matchNoteInKey(note, key)) {
 					return note;
 				}
 			}
@@ -317,7 +338,7 @@ var NoteProcessor = function () {
 			return false;
 		}
 	}]);
-	return NoteProcessor;
+	return DataProcess;
 }();
 
 var Generate = function () {
@@ -376,7 +397,7 @@ var Generate = function () {
 					break;
 			}
 			var newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { "data": data }) || { "data": data };
-			return NoteProcessor.processNoteEvent(newMessage, messageType, this.key);
+			return DataProcess.NoteEvent(newMessage, messageType, this.key);
 		}
 	}]);
 	return Generate;
@@ -406,7 +427,7 @@ var MIDIEvents = function (_Events) {
 				case 128:
 					eventName = NOTE_OFF_EVENT;
 					delete this.keysPressed[message.data[1]];
-					data = NoteProcessor.processNoteEvent(message, eventName, key);
+					data = DataProcess.NoteEvent(message, eventName, key);
 					break;
 				case 144:
 					// handle 0 velocity as a note off event
@@ -415,7 +436,7 @@ var MIDIEvents = function (_Events) {
 					} else {
 						eventName = NOTE_OFF_EVENT;
 					}
-					data = NoteProcessor.processNoteEvent(message, eventName, key);
+					data = DataProcess.NoteEvent(message, eventName, key);
 					if (eventName == NOTE_ON_EVENT) {
 						this.keysPressed[message.data[1]] = data;
 					} else {
@@ -424,19 +445,19 @@ var MIDIEvents = function (_Events) {
 					break;
 				case 176:
 					eventName = CONTROLLER_EVENT;
-					data = NoteProcessor.processCCEvent(message);
+					data = DataProcess.CCEvent(message);
 					break;
 				case 224:
 					eventName = PITCHWHEEL_EVENT;
-					data = NoteProcessor.processPitchWheel(message);
+					data = DataProcess.PitchWheel(message);
 					break;
 				case 208:
 					eventName = AFTERTOUCH_EVENT;
-					data = NoteProcessor.processMidiControlEvent(message, eventName);
+					data = DataProcess.MidiControlEvent(message, eventName);
 					break;
 				case 192:
 					eventName = PROGRAM_CHANGE_EVENT;
-					data = NoteProcessor.processMidiControlEvent(message, eventName);
+					data = DataProcess.MidiControlEvent(message, eventName);
 					break;
 			}
 			// if there is no event name, then we don't support that event yet so do nothing.

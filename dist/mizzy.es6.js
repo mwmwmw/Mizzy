@@ -28,14 +28,42 @@ class Events {
 	};
 }
 
+const GLOBAL_TUNE = 440;
+const MIDI_14BIT_MAX_VALUE = 16384;
+const MIDI_MAX_VALUE = 127;
+
 class Convert {
 
-	static MIDINoteToFrequency(midinote, tune = 440) {
-		return tune * Math.pow(2, (midinote - 69) / 12)
+	static MIDINoteToFrequency(midinote, tune = GLOBAL_TUNE) {
+		return tune * Math.pow(2, (midinote - 69) / 12); //
 	}
 
+	static PitchWheelToPolar (raw) {
+		return -((MIDI_14BIT_MAX_VALUE * 0.5) - raw);
+	}
+
+	static PitchWheelToPolarRatio (raw) {
+		return Convert.PitchWheelToPolar(raw) / (MIDI_14BIT_MAX_VALUE * 0.5)
+	}
+
+	static MidiValueToRatio (value) {
+		return value / MIDI_MAX_VALUE;
+	}
+
+	static MidiValueToPolarRatio (value) {
+		let halfmax = (MIDI_MAX_VALUE * 0.5);
+		return -(halfmax - value) / halfmax;
+	}
 
 }
+
+const MIDI_NOTE_ON = 0x90;
+const MIDI_NOTE_OFF = 0x80;
+const MIDI_AFTERTOUCH = 0xA0;
+const MIDI_CONTROL_CHANGE = 0xB0;
+const MIDI_PROGRAM_CHANGE = 0xC0;
+const MIDI_CHANNEL_PRESSURE = 0xD0;
+const MIDI_PITCHBEND = 0xE0;
 
 const MIDI_MESSAGE_EVENT = "midimessage";
 
@@ -48,6 +76,8 @@ const AFTERTOUCH_EVENT = "Aftertouch";
 
 const KEYBOARD_EVENT_KEY_DOWN = "keydown";
 const KEYBOARD_EVENT_KEY_UP = "keyup";
+
+const ENHARMONIC_KEYS = ["C", "G", "D", "A", "E", "B", "Cb", "F#", "Gb", "C#", "Db", "Ab", "Eb", "Bb", "F"];
 
 const MIDI_NOTE_MAP = {
 	"C": [0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120],
@@ -73,14 +103,6 @@ const MIDI_NOTE_MAP = {
 	"Cb": [11, 23, 35, 47, 59, 71, 83, 95, 107, 119]
 };
 
-const MIDI_NOTE_ON = 0x90;
-const MIDI_NOTE_OFF = 0x80;
-const MIDI_AFTERTOUCH = 0xA0;
-const MIDI_CONTROL_CHANGE = 0xB0;
-const MIDI_PROGRAM_CHANGE = 0xC0;
-const MIDI_CHANNEL_PRESSURE = 0xD0;
-const MIDI_PITCHBEND = 0xE0;
-
 
 
 const KEY_NOTE_ARRAYS = {
@@ -101,16 +123,14 @@ const KEY_NOTE_ARRAYS = {
 	"F": ["F", "G", "A", "Bb", "C", "D", "E"]
 };
 
-const ENHARMONIC_KEYS = ["C", "G", "D", "A", "E", "B", "Cb", "F#", "Gb", "C#", "Db", "Ab", "Eb", "Bb", "F"];
-
-class NoteProcessor {
+class DataProcess {
 	// add all of our extra data to the MIDI message event.
-	static processNoteEvent(message, eventName, key = "C") {
+	static NoteEvent(message, eventName, key = ENHARMONIC_KEYS[0]) {
 		const notes = this.getNoteNames(message.data[1]);
 		const data = {
 			"enharmonics": notes,
-			"note": NoteProcessor.findNoteInKey(notes, key),
-			"inKey": NoteProcessor.isNoteInKey(notes, key),
+			"note": DataProcess.findNoteInKey(notes, key),
+			"inKey": DataProcess.isNoteInKey(notes, key),
 			"value": message.data[1],
 			"velocity": message.data[2],
 			"frequency": Convert.MIDINoteToFrequency(message.data[1])
@@ -119,33 +139,34 @@ class NoteProcessor {
 	};
 
 	// add all of our extra data to the MIDI message event.
-	static processCCEvent(message, ccNameOverride) {
+	static CCEvent(message, ccNameOverride) {
 		Object.assign(message, {
 			"cc": ccNameOverride || message.data[1],
 			"value": message.data[2],
-			"ratio": message.data[2] / 127,
+			"ratio": Convert.MidiValueToRatio(message.data[2]),
+			"polarRatio":Convert.MidiValueToPolarRatio(message.data[2]),
 			"timestamp": message.receivedTime
 		});
 	}
 
 	// add all of our extra data to the MIDI message event.
-	static processMidiControlEvent(message, controlName) {
+	static MidiControlEvent(message, controlName) {
 		Object.assign(message, {
 			"cc": controlName,
 			"value": message.data[1],
-			"ratio": message.data[1] / 127,
+			"ratio": Convert.MidiValueToRatio(message.data[2]),
 			"timestamp": message.receivedTime
 		});
 	}
 
 	// add all of our extra data to the MIDI message event.
-	static processPitchWheel(message) {
-		const raw = message.data[1] | (message.data[2] << 7), calc = -(8192 - raw), ratio = calc / 8192;
+	static PitchWheel(message) {
+		const raw = message.data[1] | (message.data[2] << 7);
 		return Object.assign(message, {
 			"cc": "pitchwheel",
 			"value": raw,
-			"polar": calc,
-			"polarRatio": ratio,
+			"polar": Convert.PitchWheelToPolar(raw),
+			"polarRatio": Convert.PitchWheelToPolarRatio(raw),
 			"timestamp": message.receivedTime
 		});
 	}
@@ -173,7 +194,7 @@ class NoteProcessor {
 		// loop through the note list
 		for (let i = 0; i < notes.length; i++) {
 			var note = notes[i];
-			if (this.matchNoteInKey(note, key)) {
+			if (DataProcess.matchNoteInKey(note, key)) {
 				return note;
 			}
 		}
@@ -200,7 +221,6 @@ class NoteProcessor {
 		}
 		return false;
 	}
-
 }
 
 class Generate {
@@ -247,9 +267,8 @@ class Generate {
 				break;
 		}
 		const newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data}) || {"data": data};
-		return NoteProcessor.processNoteEvent(newMessage, messageType, this.key);
+		return DataProcess.NoteEvent(newMessage, messageType, this.key);
 	}
-
 }
 
 class MIDIEvents extends Events {
@@ -265,7 +284,7 @@ class MIDIEvents extends Events {
 			case 128:
 				eventName = NOTE_OFF_EVENT;
 				delete this.keysPressed[message.data[1]];
-				data = NoteProcessor.processNoteEvent(message, eventName, key);
+				data = DataProcess.NoteEvent(message, eventName, key);
 				break;
 			case 144:
 				// handle 0 velocity as a note off event
@@ -274,7 +293,7 @@ class MIDIEvents extends Events {
 				} else {
 					eventName = NOTE_OFF_EVENT;
 				}
-				data = NoteProcessor.processNoteEvent(message, eventName, key);
+				data = DataProcess.NoteEvent(message, eventName, key);
 				if (eventName == NOTE_ON_EVENT) {
 					this.keysPressed[message.data[1]] = data;
 				} else {
@@ -283,19 +302,19 @@ class MIDIEvents extends Events {
 				break;
 			case 176:
 				eventName = CONTROLLER_EVENT;
-				data = NoteProcessor.processCCEvent(message);
+				data = DataProcess.CCEvent(message);
 				break;
 			case 224:
 				eventName = PITCHWHEEL_EVENT;
-				data = NoteProcessor.processPitchWheel(message);
+				data = DataProcess.PitchWheel(message);
 				break;
 			case 208:
 				eventName = AFTERTOUCH_EVENT;
-				data = NoteProcessor.processMidiControlEvent(message, eventName);
+				data = DataProcess.MidiControlEvent(message, eventName);
 				break;
 			case 192:
 				eventName = PROGRAM_CHANGE_EVENT;
-				data = NoteProcessor.processMidiControlEvent(message, eventName);
+				data = DataProcess.MidiControlEvent(message, eventName);
 				break;
 		}
 		// if there is no event name, then we don't support that event yet so do nothing.
@@ -568,6 +587,10 @@ class Mizzy extends MIDIEvents {
 		}
 	}
 
+	get keys() {
+		return ENHARMONIC_KEYS;
+	}
+
 	setKey(keyname) {
 		this.key = keyname;
 	}
@@ -605,7 +628,7 @@ class Mizzy extends MIDIEvents {
 
 	bindToInput(input) {
 		this.boundInputs.push(input);
-		input.onmidimessage = (e) => this.onMIDIMessage(e);
+		input.onmidimessage = (e) => this.onMIDIMessage(e, this.key);
 	}
 
 	unbindInput(input) {
