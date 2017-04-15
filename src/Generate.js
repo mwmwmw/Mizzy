@@ -1,4 +1,4 @@
-import NoteProcessor from "./NoteProcessor";
+import DataProcess from "./DataProcess";
 import {
 	MIDI_AFTERTOUCH,
 	MIDI_CHANNEL_PRESSURE,
@@ -56,6 +56,6 @@ export default class Generate {
 				break;
 		}
 		const newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data}) || {"data": data};
-		return NoteProcessor.processNoteEvent(newMessage, messageType, this.key);
+		return DataProcess.NoteEvent(newMessage, messageType, this.key);
 	}
 }

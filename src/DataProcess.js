@@ -1,14 +1,14 @@
 import Convert from "./Convert";
 import {ENHARMONIC_KEYS, KEY_NOTE_ARRAYS, MIDI_NOTE_MAP} from "./Constants";
 
-export default class NoteProcessor {
+export default class DataProcess {
 	// add all of our extra data to the MIDI message event.
-	static processNoteEvent(message, eventName, key = ENHARMONIC_KEYS[0]) {
+	static NoteEvent(message, eventName, key = ENHARMONIC_KEYS[0]) {
 		const notes = this.getNoteNames(message.data[1]);
 		const data = {
 			"enharmonics": notes,
-			"note": NoteProcessor.findNoteInKey(notes, key),
-			"inKey": NoteProcessor.isNoteInKey(notes, key),
+			"note": DataProcess.findNoteInKey(notes, key),
+			"inKey": DataProcess.isNoteInKey(notes, key),
 			"value": message.data[1],
 			"velocity": message.data[2],
 			"frequency": Convert.MIDINoteToFrequency(message.data[1])
@@ -17,34 +17,32 @@ export default class NoteProcessor {
 	};
 
 	// add all of our extra data to the MIDI message event.
-	static processCCEvent(message, ccNameOverride) {
-		Object.assign(message, {
+	static CCEvent(message, ccNameOverride) {
+		return Object.assign(message, {
 			"cc": ccNameOverride || message.data[1],
 			"value": message.data[2],
-			"ratio": message.data[2] / 127,
-			"timestamp": message.receivedTime
+			"ratio": Convert.MidiValueToRatio(message.data[2]),
+			"polarRatio":Convert.MidiValueToPolarRatio(message.data[2]),
 		});
 	}
 
 	// add all of our extra data to the MIDI message event.
-	static processMidiControlEvent(message, controlName) {
-		Object.assign(message, {
+	static MidiControlEvent(message, controlName) {
+		return Object.assign(message, {
 			"cc": controlName,
 			"value": message.data[1],
-			"ratio": message.data[1] / 127,
-			"timestamp": message.receivedTime
+			"ratio": Convert.MidiValueToRatio(message.data[2]),
 		});
 	}
 
 	// add all of our extra data to the MIDI message event.
-	static processPitchWheel(message) {
-		const raw = message.data[1] | (message.data[2] << 7), calc = -(8192 - raw), ratio = calc / 8192;
+	static PitchWheel(message) {
+		const raw = message.data[1] | (message.data[2] << 7);
 		return Object.assign(message, {
 			"cc": "pitchwheel",
 			"value": raw,
-			"polar": calc,
-			"polarRatio": ratio,
-			"timestamp": message.receivedTime
+			"polar": Convert.PitchWheelToPolar(raw),
+			"polarRatio": Convert.PitchWheelToPolarRatio(raw),
 		});
 	}
 
@@ -71,7 +69,7 @@ export default class NoteProcessor {
 		// loop through the note list
 		for (let i = 0; i < notes.length; i++) {
 			var note = notes[i];
-			if (this.matchNoteInKey(note, key)) {
+			if (DataProcess.matchNoteInKey(note, key)) {
 				return note;
 			}
 		}
@@ -98,5 +96,4 @@ export default class NoteProcessor {
 		}
 		return false;
 	}
-
 }

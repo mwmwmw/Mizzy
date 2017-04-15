@@ -1,5 +1,5 @@
 import Events from "./Events";
-import NoteProcessor from "./NoteProcessor";
+import DataProcess from "./DataProcess";
 import Generate from "./Generate";
 import {
 	AFTERTOUCH_EVENT,
@@ -27,7 +27,7 @@ export default class MIDIEvents extends Events {
 			case 128:
 				eventName = NOTE_OFF_EVENT;
 				delete this.keysPressed[message.data[1]];
-				data = NoteProcessor.processNoteEvent(message, eventName, key);
+				data = DataProcess.NoteEvent(message, eventName, key);
 				break;
 			case 144:
 				// handle 0 velocity as a note off event
@@ -36,7 +36,7 @@ export default class MIDIEvents extends Events {
 				} else {
 					eventName = NOTE_OFF_EVENT;
 				}
-				data = NoteProcessor.processNoteEvent(message, eventName, key);
+				data = DataProcess.NoteEvent(message, eventName, key);
 				if (eventName == NOTE_ON_EVENT) {
 					this.keysPressed[message.data[1]] = data;
 				} else {
@@ -45,19 +45,19 @@ export default class MIDIEvents extends Events {
 				break;
 			case 176:
 				eventName = CONTROLLER_EVENT;
-				data = NoteProcessor.processCCEvent(message);
+				data = DataProcess.CCEvent(message);
 				break;
 			case 224:
 				eventName = PITCHWHEEL_EVENT;
-				data = NoteProcessor.processPitchWheel(message);
+				data = DataProcess.PitchWheel(message);
 				break;
 			case 208:
 				eventName = AFTERTOUCH_EVENT;
-				data = NoteProcessor.processMidiControlEvent(message, eventName);
+				data = DataProcess.MidiControlEvent(message, eventName);
 				break;
 			case 192:
 				eventName = PROGRAM_CHANGE_EVENT;
-				data = NoteProcessor.processMidiControlEvent(message, eventName);
+				data = DataProcess.MidiControlEvent(message, eventName);
 				break;
 		}
 		// if there is no event name, then we don't support that event yet so do nothing.
