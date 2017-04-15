@@ -542,6 +542,11 @@ class MIDIEvents extends Events {
 }
 
 class Mizzy extends MIDIEvents {
+
+	static get Generate () {
+		return Generate;
+	}
+
 	constructor() {
 		super();
 		this.keysPressed = [];
@@ -568,7 +573,12 @@ class Mizzy extends MIDIEvents {
 					sysex: false
 				}).then((e) => this.onMIDISuccess(e), (e) => this.onMIDIFailure(e));
 			} else {
-				throw "Your browser has no midi support";
+				console.warn("[Mizzy] Your browser does not support Web MIDI API. You can still use the local loopback however.");
+				return new Promise((resolve, reject) => {
+					setTimeout(function(){
+						resolve();
+					}, 50);
+				});
 			}
 		}
 	}
@@ -666,7 +676,6 @@ class Mizzy extends MIDIEvents {
 		}
 	}
 }
-Mizzy.Generate = Generate;
 
 export default Mizzy;
 

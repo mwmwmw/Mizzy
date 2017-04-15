@@ -730,6 +730,12 @@ var MIDIEvents = function (_Events) {
 
 var Mizzy = function (_MIDIEvents) {
 	inherits(Mizzy, _MIDIEvents);
+	createClass(Mizzy, null, [{
+		key: "Generate",
+		get: function get$$1() {
+			return Generate;
+		}
+	}]);
 
 	function Mizzy() {
 		classCallCheck(this, Mizzy);
@@ -769,7 +775,12 @@ var Mizzy = function (_MIDIEvents) {
 						return _this2.onMIDIFailure(e);
 					});
 				} else {
-					throw "Your browser has no midi support";
+					console.warn("[Mizzy] Your browser does not support Web MIDI API. You can still use the local loopback however.");
+					return new Promise(function (resolve, reject) {
+						setTimeout(function () {
+							resolve();
+						}, 50);
+					});
 				}
 			}
 		}
@@ -889,8 +900,6 @@ var Mizzy = function (_MIDIEvents) {
 	}]);
 	return Mizzy;
 }(MIDIEvents);
-
-Mizzy.Generate = Generate;
 
 module.exports = Mizzy;
 

@@ -34,7 +34,12 @@ export default class Mizzy extends MIDIEvents {
 					sysex: false
 				}).then((e) => this.onMIDISuccess(e), (e) => this.onMIDIFailure(e));
 			} else {
-				throw "Your browser has no midi support";
+				console.warn("[Mizzy] Your browser does not support Web MIDI API. You can still use the local loopback however.");
+				return new Promise((resolve, reject) => {
+					setTimeout(function(){
+						resolve();
+					}, 50);
+				});
 			}
 		}
 	}
