@@ -1,13 +1,9 @@
-import MIDIData from "./MIDIData";
 import Convert from "./Convert";
-import Notation from "./Notation";
-
-let notes = MIDIData.MidiNotes;
-let keynotes = Notation.KeyNotes;
+import {ENHARMONIC_KEYS, KEY_NOTE_ARRAYS, MIDI_NOTE_MAP} from "./Constants";
 
 export default class NoteProcessor {
 	// add all of our extra data to the MIDI message event.
-	static processNoteEvent(message, eventName, key = "C") {
+	static processNoteEvent(message, eventName, key = ENHARMONIC_KEYS[0]) {
 		const notes = this.getNoteNames(message.data[1]);
 		const data = {
 			"enharmonics": notes,
@@ -58,9 +54,9 @@ export default class NoteProcessor {
 	// get a list of notes that match this noteNumber
 	static getNoteNames(noteNumber) {
 		let noteNames = []; // create a list for the notes
-		for (var note in notes) {
+		for (var note in MIDI_NOTE_MAP) {
 			// loop through the note table and push notes that match.
-			notes[note].forEach(keynumber => {
+			MIDI_NOTE_MAP[note].forEach(keynumber => {
 					if (noteNumber === keynumber) {
 						noteNames.push(note);
 					}
@@ -94,8 +90,8 @@ export default class NoteProcessor {
 	}
 
 	static matchNoteInKey(note, key) {
-		for (let i = 0; i < keynotes[key].length; i++) {
-			const keynote = keynotes[key][i];
+		for (let i = 0; i < KEY_NOTE_ARRAYS[key].length; i++) {
+			const keynote = KEY_NOTE_ARRAYS[key][i];
 			if (note === keynote) {
 				return true;
 			}
@@ -104,4 +100,3 @@ export default class NoteProcessor {
 	}
 
 }
-NoteProcessor.keysPressed = [];

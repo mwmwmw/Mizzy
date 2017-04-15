@@ -1,10 +1,7 @@
-import Events from "./Events";
-import Generate from "./Generate";
-import NoteProcessor from "./NoteProcessor";
-import Notation from "./Notation";
+import MIDIEvents from "./MIDIEvents";
+import {ENHARMONIC_KEYS} from "./Constants";
 
-
-export default class Mizzy extends Events{
+export default class Mizzy extends MIDIEvents {
 	constructor() {
 		super();
 		this.keysPressed = [];
@@ -14,22 +11,30 @@ export default class Mizzy extends Events{
 		this.boundInputs = [];
 		this.boundOutputs = [];
 
-		this.key = Notation.Keys[0]; // C-Major
+		this.key = ENHARMONIC_KEYS[0]; // C-Major
 		if (!window.MIDIMessageEvent) {
 			window.MIDIMessageEvent = (name, params) => {
 				this.name = name;
 				return Object.assign(this, params);
 			}
 		}
+
+	}
+
+	initialize() {
 		if (this.midiAccess === null) {
 			if (navigator.requestMIDIAccess) {
-				navigator.requestMIDIAccess({
+				return navigator.requestMIDIAccess({
 					sysex: false
 				}).then((e) => this.onMIDISuccess(e), (e) => this.onMIDIFailure(e));
 			} else {
 				throw "Your browser has no midi support";
 			}
 		}
+	}
+
+	get keys() {
+		return ENHARMONIC_KEYS;
 	}
 
 	setKey(keyname) {
@@ -47,7 +52,7 @@ export default class Mizzy extends Events{
 			return this.midiAccess.outputs.values();
 		}
 	}
-	
+
 
 	get outputDevices() {
 		let deviceArray = [];
@@ -69,7 +74,7 @@ export default class Mizzy extends Events{
 
 	bindToInput(input) {
 		this.boundInputs.push(input);
-		input.onmidimessage = (e) => this.onMIDIMessage(e);
+		input.onmidimessage = (e) => this.onMIDIMessage(e, this.key);
 	}
 
 	unbindInput(input) {
@@ -88,18 +93,18 @@ export default class Mizzy extends Events{
 	}
 
 	unbindAllInputs() {
-			this.boundInputs.forEach(this.unbindInput);
+		this.boundInputs.forEach(this.unbindInput);
 	}
 
-	bindToOutput (output) {
+	bindToOutput(output) {
 		this.boundOutputs.push(output);
 	}
 
 	bindToAllOutputs() {
 		if (this.midiAccess != null) {
-			let inputs = this.getMidiOutputs();
-			for (let input = inputs.next(); input && !input.done; input = inputs.next()) {
-				this.bindToOutput(input.value);
+			let outputs = this.getMidiOutputs();
+			for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
+				this.bindToOutput(output.value);
 			}
 		}
 	}
@@ -113,16 +118,11 @@ export default class Mizzy extends Events{
 	}
 
 	sendMidiMessage(message) {
-
+		this.boundOutputs.forEach((output) => {
+			output.send(message.data, message.timeStamp);
+		});
 		if (this.loopback) {
-			this.loopBackMidiMessage(message);
+			this.onMIDIMessage(message, this.key);
 		}
-
-		this.boundOutputs.forEach((output) => output.send(message.data, message.timeStamp))
-
-	}
-
-	loopBackMidiMessage(message) {
-		this.onMIDIMessage(message, this.key);
 	}
 }
