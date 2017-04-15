@@ -223,17 +223,19 @@ var DataProcess = function () {
 		key: "NoteEvent",
 
 		// add all of our extra data to the MIDI message event.
-		value: function NoteEvent(message, eventName) {
-			var key = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : ENHARMONIC_KEYS[0];
+		value: function NoteEvent(message) {
+			var key = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : ENHARMONIC_KEYS[0];
+			var transpose = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
 
-			var notes = this.getNoteNames(message.data[1]);
+			var value = message.data[1] + transpose;
+			var notes = this.getNoteNames(value);
 			var data = {
 				"enharmonics": notes,
 				"note": DataProcess.findNoteInKey(notes, key),
 				"inKey": DataProcess.isNoteInKey(notes, key),
-				"value": message.data[1],
+				"value": value,
 				"velocity": message.data[2],
-				"frequency": Convert.MIDINoteToFrequency(message.data[1])
+				"frequency": Convert.MIDINoteToFrequency(value)
 			};
 			return Object.assign(message, data);
 		}
@@ -243,12 +245,11 @@ var DataProcess = function () {
 
 		// add all of our extra data to the MIDI message event.
 		value: function CCEvent(message, ccNameOverride) {
-			Object.assign(message, {
+			return Object.assign(message, {
 				"cc": ccNameOverride || message.data[1],
 				"value": message.data[2],
 				"ratio": Convert.MidiValueToRatio(message.data[2]),
-				"polarRatio": Convert.MidiValueToPolarRatio(message.data[2]),
-				"timestamp": message.receivedTime
+				"polarRatio": Convert.MidiValueToPolarRatio(message.data[2])
 			});
 		}
 
@@ -257,26 +258,24 @@ var DataProcess = function () {
 	}, {
 		key: "MidiControlEvent",
 		value: function MidiControlEvent(message, controlName) {
-			Object.assign(message, {
+			return Object.assign(message, {
 				"cc": controlName,
 				"value": message.data[1],
-				"ratio": Convert.MidiValueToRatio(message.data[2]),
-				"timestamp": message.receivedTime
+				"ratio": Convert.MidiValueToRatio(message.data[2])
 			});
 		}
 
 		// add all of our extra data to the MIDI message event.
 
 	}, {
-		key: "PitchWheel",
-		value: function PitchWheel(message) {
+		key: "PitchWheelEvent",
+		value: function PitchWheelEvent(message) {
 			var raw = message.data[1] | message.data[2] << 7;
 			return Object.assign(message, {
 				"cc": "pitchwheel",
 				"value": raw,
 				"polar": Convert.PitchWheelToPolar(raw),
-				"polarRatio": Convert.PitchWheelToPolarRatio(raw),
-				"timestamp": message.receivedTime
+				"polarRatio": Convert.PitchWheelToPolarRatio(raw)
 			});
 		}
 
@@ -364,8 +363,8 @@ var Generate = function () {
 			return new Uint8Array([MIDI_AFTERTOUCH, noteNumber, value]);
 		}
 	}, {
-		key: "ControlChange",
-		value: function ControlChange(controller, value) {
+		key: "CC",
+		value: function CC(controller, value) {
 			return new Uint8Array([MIDI_CONTROL_CHANGE, controller, value]);
 		}
 	}, {
@@ -387,8 +386,8 @@ var Generate = function () {
 			return new Uint8Array([MIDI_PITCHBEND, msb, lsb]);
 		}
 	}, {
-		key: "FakeMessage",
-		value: function FakeMessage(messageType, value) {
+		key: "NoteEvent",
+		value: function NoteEvent(messageType, value) {
 			var data = null;
 			switch (messageType) {
 				case NOTE_ON_EVENT:
@@ -399,7 +398,21 @@ var Generate = function () {
 					break;
 			}
 			var newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { "data": data }) || { "data": data };
-			return DataProcess.NoteEvent(newMessage, messageType, this.key);
+			return DataProcess.NoteEvent(newMessage, this.key);
+		}
+	}, {
+		key: "CCEvent",
+		value: function CCEvent(cc, value) {
+			var data = Generate.CC(cc, value);
+			var newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { "data": data });
+			return DataProcess.CCEvent(newMessage);
+		}
+	}, {
+		key: "PitchBendEvent",
+		value: function PitchBendEvent(value) {
+			var data = Generate.PitchBend(value);
+			var newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { "data": data });
+			return DataProcess.CCEvent(newMessage);
 		}
 	}]);
 	return Generate;
@@ -429,7 +442,7 @@ var MIDIEvents = function (_Events) {
 				case 128:
 					eventName = NOTE_OFF_EVENT;
 					delete this.keysPressed[message.data[1]];
-					data = DataProcess.NoteEvent(message, eventName, key);
+					data = DataProcess.NoteEvent(message, key);
 					break;
 				case 144:
 					// handle 0 velocity as a note off event
@@ -438,7 +451,7 @@ var MIDIEvents = function (_Events) {
 					} else {
 						eventName = NOTE_OFF_EVENT;
 					}
-					data = DataProcess.NoteEvent(message, eventName, key);
+					data = DataProcess.NoteEvent(message, key);
 					if (eventName == NOTE_ON_EVENT) {
 						this.keysPressed[message.data[1]] = data;
 					} else {
@@ -451,7 +464,7 @@ var MIDIEvents = function (_Events) {
 					break;
 				case 224:
 					eventName = PITCHWHEEL_EVENT;
-					data = DataProcess.PitchWheel(message);
+					data = DataProcess.PitchWheelEvent(message);
 					break;
 				case 208:
 					eventName = AFTERTOUCH_EVENT;
@@ -511,30 +524,6 @@ var MIDIEvents = function (_Events) {
 		key: "onNoteNumber",
 
 
-		// currently broken. will bind an event to particular keypress.
-		// this.onNoteName (name, handler) {
-		//     let wrapper (data) {
-		//         if(typeof data.note_name === "string") {
-		//             if (name.length > 1) {
-		//                 let dataname = new RegExp(name);
-		//                 if (data.note_name.match(dataname)) {
-		//                     handler(data);
-		//                 }
-		//             } else {
-		//                 if (data.note_name === name) {
-		//                     handler(data);
-		//                 }
-		//             }
-		//         } else {
-		//             data.note_name.forEach(function(notename){
-		//                 if(notename === name) {
-		//                     handler(data);
-		//                 }
-		//             })
-		//         }
-		//     };
-		//     this.on(NOTE_ON_EVENT, wrapper);
-		// };
 		// EZ binding for key values. Can only be unbound with unbindALL()
 		value: function onNoteNumber(number, handler) {
 			var wrapper = function wrapper(data) {
@@ -636,43 +625,43 @@ var MIDIEvents = function (_Events) {
 				var newMessage = null;
 				switch (message.keyCode) {
 					case 90:
-						newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 60);
+						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 60);
 						break;
 					case 83:
-						newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 61);
+						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 61);
 						break;
 					case 88:
-						newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 62);
+						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 62);
 						break;
 					case 68:
-						newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 63);
+						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 63);
 						break;
 					case 67:
-						newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 64);
+						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 64);
 						break;
 					case 86:
-						newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 65);
+						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 65);
 						break;
 					case 71:
-						newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 66);
+						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 66);
 						break;
 					case 66:
-						newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 67);
+						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 67);
 						break;
 					case 72:
-						newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 68);
+						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 68);
 						break;
 					case 78:
-						newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 69);
+						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 69);
 						break;
 					case 74:
-						newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 70);
+						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 70);
 						break;
 					case 77:
-						newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 71);
+						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 71);
 						break;
 					case 188:
-						newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 72);
+						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 72);
 						break;
 				}
 				if (newMessage !== null) {
@@ -688,43 +677,43 @@ var MIDIEvents = function (_Events) {
 				var newMessage = null;
 				switch (message.keyCode) {
 					case 90:
-						newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 60);
+						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 60);
 						break;
 					case 83:
-						newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 61);
+						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 61);
 						break;
 					case 88:
-						newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 62);
+						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 62);
 						break;
 					case 68:
-						newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 63);
+						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 63);
 						break;
 					case 67:
-						newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 64);
+						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 64);
 						break;
 					case 86:
-						newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 65);
+						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 65);
 						break;
 					case 71:
-						newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 66);
+						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 66);
 						break;
 					case 66:
-						newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 67);
+						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 67);
 						break;
 					case 72:
-						newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 68);
+						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 68);
 						break;
 					case 78:
-						newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 69);
+						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 69);
 						break;
 					case 74:
-						newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 70);
+						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 70);
 						break;
 					case 77:
-						newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 71);
+						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 71);
 						break;
 					case 188:
-						newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 72);
+						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 72);
 						break;
 				}
 				if (newMessage !== null) {
@@ -786,8 +775,10 @@ var Mizzy = function (_MIDIEvents) {
 		}
 	}, {
 		key: "setKey",
-		value: function setKey(keyname) {
-			this.key = keyname;
+		value: function setKey() {
+			var keyletter = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "C";
+
+			this.key = ENHARMONIC_KEYS[ENHARMONIC_KEYS.indexOf(keyletter.toUpperCase())] || "C";
 		}
 	}, {
 		key: "getMidiInputs",
@@ -898,6 +889,8 @@ var Mizzy = function (_MIDIEvents) {
 	}]);
 	return Mizzy;
 }(MIDIEvents);
+
+Mizzy.Generate = Generate;
 
 module.exports = Mizzy;
 
