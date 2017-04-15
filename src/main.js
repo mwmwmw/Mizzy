@@ -1,5 +1,6 @@
 import MIDIEvents from "./MIDIEvents";
 import {ENHARMONIC_KEYS} from "./Constants";
+import Generate from "./Generate";
 
 export default class Mizzy extends MIDIEvents {
 	constructor() {
@@ -126,3 +127,4 @@ export default class Mizzy extends MIDIEvents {
 		}
 	}
 }
+Mizzy.Generate = Generate;

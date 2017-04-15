@@ -9,7 +9,9 @@ import {
 	MIDI_PITCHBEND,
 	MIDI_PROGRAM_CHANGE,
 	NOTE_OFF_EVENT,
-	NOTE_ON_EVENT
+	NOTE_ON_EVENT,
+	CONTROLLER_EVENT,
+	PITCHWHEEL_EVENT
 } from "./Constants";
 
 export default class Generate {
@@ -26,7 +28,7 @@ export default class Generate {
 		return new Uint8Array([MIDI_AFTERTOUCH, noteNumber, value]);
 	}
 
-	static ControlChange(controller, value) {
+	static CC(controller, value) {
 		return new Uint8Array([MIDI_CONTROL_CHANGE, controller, value]);
 	}
 
@@ -45,7 +47,7 @@ export default class Generate {
 		return new Uint8Array([MIDI_PITCHBEND, msb, lsb]);
 	}
 
-	static FakeMessage(messageType, value) {
+	static NoteEvent(messageType, value) {
 		let data = null;
 		switch (messageType) {
 			case NOTE_ON_EVENT:
@@ -57,5 +59,17 @@ export default class Generate {
 		}
 		const newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data}) || {"data": data};
 		return DataProcess.NoteEvent(newMessage, messageType, this.key);
+	}
+
+	static CCEvent(cc, value) {
+		let data = Generate.CC(cc, value);
+		const newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data});
+		return DataProcess.CCEvent(newMessage);
+	}
+
+	static PitchBendEvent(value) {
+		let data = Generate.PitchBend(value);
+		const newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data});
+		return DataProcess.CCEvent(newMessage);
 	}
 }
