@@ -3,15 +3,16 @@ import {ENHARMONIC_KEYS, KEY_NOTE_ARRAYS, MIDI_NOTE_MAP} from "./Constants";
 
 export default class DataProcess {
 	// add all of our extra data to the MIDI message event.
-	static NoteEvent(message, eventName, key = ENHARMONIC_KEYS[0]) {
-		const notes = this.getNoteNames(message.data[1]);
+	static NoteEvent(message, key = ENHARMONIC_KEYS[0], transpose = 0) {
+		const value = message.data[1] + transpose;
+		const notes = this.getNoteNames(value);
 		const data = {
 			"enharmonics": notes,
 			"note": DataProcess.findNoteInKey(notes, key),
 			"inKey": DataProcess.isNoteInKey(notes, key),
-			"value": message.data[1],
+			"value": value,
 			"velocity": message.data[2],
-			"frequency": Convert.MIDINoteToFrequency(message.data[1])
+			"frequency": Convert.MIDINoteToFrequency(value)
 		};
 		return Object.assign(message, data);
 	};
@@ -36,7 +37,7 @@ export default class DataProcess {
 	}
 
 	// add all of our extra data to the MIDI message event.
-	static PitchWheel(message) {
+	static PitchWheelEvent(message) {
 		const raw = message.data[1] | (message.data[2] << 7);
 		return Object.assign(message, {
 			"cc": "pitchwheel",

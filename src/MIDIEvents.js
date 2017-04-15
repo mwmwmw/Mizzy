@@ -13,7 +13,6 @@ import {
 	PROGRAM_CHANGE_EVENT
 } from "./Constants";
 
-
 export default class MIDIEvents extends Events {
 	constructor() {
 		super();
@@ -27,7 +26,7 @@ export default class MIDIEvents extends Events {
 			case 128:
 				eventName = NOTE_OFF_EVENT;
 				delete this.keysPressed[message.data[1]];
-				data = DataProcess.NoteEvent(message, eventName, key);
+				data = DataProcess.NoteEvent(message, key);
 				break;
 			case 144:
 				// handle 0 velocity as a note off event
@@ -36,7 +35,7 @@ export default class MIDIEvents extends Events {
 				} else {
 					eventName = NOTE_OFF_EVENT;
 				}
-				data = DataProcess.NoteEvent(message, eventName, key);
+				data = DataProcess.NoteEvent(message, key);
 				if (eventName == NOTE_ON_EVENT) {
 					this.keysPressed[message.data[1]] = data;
 				} else {
@@ -49,7 +48,7 @@ export default class MIDIEvents extends Events {
 				break;
 			case 224:
 				eventName = PITCHWHEEL_EVENT;
-				data = DataProcess.PitchWheel(message);
+				data = DataProcess.PitchWheelEvent(message);
 				break;
 			case 208:
 				eventName = AFTERTOUCH_EVENT;
@@ -97,30 +96,6 @@ export default class MIDIEvents extends Events {
 		this.on(NOTE_OFF_EVENT, handlerOff);
 	};
 
-	// currently broken. will bind an event to particular keypress.
-	// this.onNoteName (name, handler) {
-	//     let wrapper (data) {
-	//         if(typeof data.note_name === "string") {
-	//             if (name.length > 1) {
-	//                 let dataname = new RegExp(name);
-	//                 if (data.note_name.match(dataname)) {
-	//                     handler(data);
-	//                 }
-	//             } else {
-	//                 if (data.note_name === name) {
-	//                     handler(data);
-	//                 }
-	//             }
-	//         } else {
-	//             data.note_name.forEach(function(notename){
-	//                 if(notename === name) {
-	//                     handler(data);
-	//                 }
-	//             })
-	//         }
-	//     };
-	//     this.on(NOTE_ON_EVENT, wrapper);
-	// };
 	// EZ binding for key values. Can only be unbound with unbindALL()
 	onNoteNumber(number, handler) {
 		const wrapper = data => {
@@ -196,43 +171,43 @@ export default class MIDIEvents extends Events {
 			let newMessage = null;
 			switch (message.keyCode) {
 				case 90:
-					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 60);
+					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 60);
 					break;
 				case 83:
-					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 61);
+					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 61);
 					break;
 				case 88:
-					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 62);
+					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 62);
 					break;
 				case 68:
-					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 63);
+					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 63);
 					break;
 				case 67:
-					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 64);
+					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 64);
 					break;
 				case 86:
-					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 65);
+					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 65);
 					break;
 				case 71:
-					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 66);
+					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 66);
 					break;
 				case 66:
-					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 67);
+					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 67);
 					break;
 				case 72:
-					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 68);
+					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 68);
 					break;
 				case 78:
-					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 69);
+					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 69);
 					break;
 				case 74:
-					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 70);
+					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 70);
 					break;
 				case 77:
-					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 71);
+					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 71);
 					break;
 				case 188:
-					newMessage = Generate.FakeMessage(NOTE_ON_EVENT, 72);
+					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 72);
 					break;
 			}
 			if (newMessage !== null) {
@@ -247,43 +222,43 @@ export default class MIDIEvents extends Events {
 			let newMessage = null;
 			switch (message.keyCode) {
 				case 90:
-					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 60);
+					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 60);
 					break;
 				case 83:
-					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 61);
+					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 61);
 					break;
 				case 88:
-					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 62);
+					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 62);
 					break;
 				case 68:
-					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 63);
+					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 63);
 					break;
 				case 67:
-					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 64);
+					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 64);
 					break;
 				case 86:
-					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 65);
+					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 65);
 					break;
 				case 71:
-					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 66);
+					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 66);
 					break;
 				case 66:
-					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 67);
+					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 67);
 					break;
 				case 72:
-					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 68);
+					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 68);
 					break;
 				case 78:
-					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 69);
+					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 69);
 					break;
 				case 74:
-					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 70);
+					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 70);
 					break;
 				case 77:
-					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 71);
+					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 71);
 					break;
 				case 188:
-					newMessage = Generate.FakeMessage(NOTE_OFF_EVENT, 72);
+					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 72);
 					break;
 			}
 			if (newMessage !== null) {
