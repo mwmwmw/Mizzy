@@ -38,8 +38,8 @@ export default class Mizzy extends MIDIEvents {
 		return ENHARMONIC_KEYS;
 	}
 
-	setKey(keyname) {
-		this.key = keyname;
+	setKey(keyletter = "C") {
+		this.key = ENHARMONIC_KEYS[ENHARMONIC_KEYS.indexOf(keyletter.toUpperCase())] || "C";
 	}
 
 	getMidiInputs() {
