@@ -58,7 +58,7 @@ export default class Generate {
 				break;
 		}
 		const newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data}) || {"data": data};
-		return DataProcess.NoteEvent(newMessage, messageType, this.key);
+		return DataProcess.NoteEvent(newMessage, this.key);
 	}
 
 	static CCEvent(cc, value) {
