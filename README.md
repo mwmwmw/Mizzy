@@ -20,7 +20,7 @@ You can see a very simple setup [here](http://codepen.io/mwmwmw/pen/256209a05836
 
 # Usage
 
-Having some knowledge of what MIDI is a good first start. [Here is a lengthly description on Instructables](http://www.instructables.com/id/What-is-MIDI/) that I recommend reading if you want to do anything with MIDI or use Mizzy in your application.
+Having some knowledge of what MIDI is would be a good first start. [Here is a lengthly description on Instructables](http://www.instructables.com/id/What-is-MIDI/) that I recommend reading if you want to do anything with MIDI or use Mizzy in your application.
 
 ## Setting up an instance of Mizzy
 
