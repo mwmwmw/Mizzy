@@ -118,11 +118,11 @@ export default class MIDIEvents extends Events {
 
 	// EZ binding for a range of key values, bind these two handlers to key value. Can only be unbound with unbindALL()
 	keyToggleRange(min, max, onHandler, offHandler) {
-		this.onRange(min, max, onHandler);
-		this.offRange(min, max, offHandler);
+		this.onSplit(min, max, onHandler);
+		this.offSplit(min, max, offHandler);
 	};
 
-	onSplit(min, max, onHandler, offHandler) {
+	onSplit(min, max, onHandler) {
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
 				this.onNoteNumber(i, onHandler);
@@ -134,7 +134,7 @@ export default class MIDIEvents extends Events {
 		}
 	};
 
-	offSplit(min, max, onHandler, offHandler) {
+	offSplit(min, max, offHandler) {
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
 				this.offNoteNumber(i, offHandler);
