@@ -22,9 +22,9 @@ You can see a very simple setup [here](http://codepen.io/mwmwmw/pen/256209a05836
 
 Having some knowledge of what MIDI is a good first start. [Here is a lengthly description on Instructables](http://www.instructables.com/id/What-is-MIDI/) that I recommend reading if you want to do anything with MIDI or use Mizzy in your application.
 
-## Setting up and instance of Mizzy
+## Setting up an instance of Mizzy
 
-Instantiate a new instance of Mizzy and then wait for the promise to resolve. When the promise resolves, that instance is initialized and you can begin binding inputs and outputs, and sending and recieving events.
+Create a new instance of Mizzy, initialize it and then wait for the promise to resolve. When the promise resolves you can begin binding inputs and outputs, and sending and recieving events.
 
 ```
 // instantiate an instance
@@ -85,7 +85,7 @@ Mizzy responds to, and sends, MIDIMessageEvents. For each MIDIMessageEvent sent/
 
 In addition to the standard MIDIMessageEvent parameters. Mizzy adds the following
 
-* `enharmonics`: A list of note names associated with this note
+* `enharmonics`: A list of note names associated with this note, eg, if you push D#, you'll get a list [D#, Eb]
 * `note`: The name of this note in the current key
 * `inKey`: Is this note in the specified key
 * `value`: the MIDI note value (0-127)
@@ -125,6 +125,13 @@ m.keyToggle(/* key pressed function*/, /* key released function */);
 To respond to a control change message, pass in the CC number and a handler
 
 `m.onCC(1, /* handle mod wheel */);`
+
+### `onNoteNumber(number, handler)`
+
+Respond to a single note, eg 
+
+`m.onNoteNumber(60, handler)`  wait for the user to press middle c 
+`m.offNoteNumber(60, handler)` fires when the user releases middle c 
 
 ----------------------------------------------
 
@@ -169,6 +176,16 @@ This will return a new `PITCHWHEEL` event which can be passed to `m.sendMidiMess
 
 
 Now you can listen for those using the functions outlined in Recieving Events.
+
+----------------------------------------------
+
+## Unbinding Events
+
+Currently, there aren't a lot of ways to unbind events. This is because wrapper functions are added to your handlers to do things like make sure the right CC triggers the event.
+
+### 'm.unbindAll()` 
+
+unbindAll does just what you'd expect. It unbinds all of your event handlers. It does not unbind input and outputs from recieving events. I'll have more options for unbinding and muting in the future, but for now you'll need to nuke. 
 
 ----------------------------------------------
 
