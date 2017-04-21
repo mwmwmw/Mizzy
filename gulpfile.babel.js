@@ -10,7 +10,7 @@ import karma from "karma";
 import fs from "fs";
 
 const paths = {
-	entry: "./src/main.js",
+	entry: "./src/Main.js",
 	dist: "./dist/",
 	sourceFiles: "./src/**/*.js",
 	sourcemaps: ".",

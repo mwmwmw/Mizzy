@@ -32,6 +32,7 @@ export default class Mizzy extends MIDIEvents {
 		this.boundOutputs = [];
 
 		this.key = ENHARMONIC_KEYS[0]; // C-Major
+
 		if (!window.MIDIMessageEvent) {
 			window.MIDIMessageEvent = (name, params) => {
 				this.name = name;
