@@ -13,6 +13,22 @@ import {
 	PROGRAM_CHANGE_EVENT
 } from "./Constants";
 
+const KEY_CODE_MAP = {
+	"90": 60,
+	"83": 61,
+	"88": 62,
+	"68": 63,
+	"67": 64,
+	"86": 65,
+	"71": 66,
+	"66": 67,
+	"72": 68,
+	"78": 69,
+	"74": 70,
+	"77": 71,
+	"188": 72
+};
+
 export default class MIDIEvents extends Events {
 	constructor() {
 		super();
@@ -82,68 +98,78 @@ export default class MIDIEvents extends Events {
 
 	// EZ binding for Control Change data, just pass in the CC number and handler. Can only be unbound with unbindALL()
 	onCC(cc, handler) {
-		const wrapper = data => {
+		return this.on(CONTROLLER_EVENT, data => {
 			if (data.cc == cc) {
 				handler(data);
 			}
-		};
-		this.on(CONTROLLER_EVENT, wrapper);
+		});
 	};
 
 	// EZ binding for key presses, bind these two handlers to key on/off. Can only be unbound with unbindALL()
 	keyToggle(handlerOn, handlerOff) {
-		this.on(NOTE_ON_EVENT, handlerOn);
-		this.on(NOTE_OFF_EVENT, handlerOff);
+		return {
+			on: this.on(NOTE_ON_EVENT, handlerOn),
+			off: this.on(NOTE_OFF_EVENT, handlerOff)
+		}
 	};
+
+	removeKeyToggle(toggles) {
+		this.off(NOTE_ON_EVENT, toggles.on);
+		this.off(NOTE_OFF_EVENT, toggles.off);
+	}
 
 	// EZ binding for key values. Can only be unbound with unbindALL()
 	onNoteNumber(number, handler) {
-		const wrapper = data => {
+		return this.on(NOTE_ON_EVENT, data => {
 			if (data.value == number) {
 				handler(data);
 			}
-		};
-		this.on(NOTE_ON_EVENT, wrapper);
+		});
 	};
 
 	// EZ binding for key values. Can only be unbound with unbindALL()
 	offNoteNumber(number, handler) {
-		const wrapper = data => {
+		return this.on(NOTE_OFF_EVENT, data => {
 			if (data.value == number) {
 				handler(data);
 			}
-		};
-		this.on(NOTE_OFF_EVENT, wrapper);
+		});
 	};
 
 	// EZ binding for a range of key values, bind these two handlers to key value. Can only be unbound with unbindALL()
 	keyToggleRange(min, max, onHandler, offHandler) {
-		this.onSplit(min, max, onHandler);
-		this.offSplit(min, max, offHandler);
+		return {
+			onRange: this.onSplit(min, max, onHandler),
+			offRange: this.offSplit(min, max, offHandler)
+		}
 	};
 
 	onSplit(min, max, onHandler) {
+		let on = [];
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
-				this.onNoteNumber(i, onHandler);
+				on.push(this.onNoteNumber(i, onHandler));
 			}
 		} else {
 			for (let i = max; i >= min; i--) {
-				this.onNoteNumber(i, onHandler);
+				on.push(this.onNoteNumber(i, onHandler));
 			}
 		}
+		return on;
 	};
 
 	offSplit(min, max, offHandler) {
+		let off = [];
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
-				this.offNoteNumber(i, offHandler);
+				off.push(this.onNoteNumber(i, offHandler));
 			}
 		} else {
 			for (let i = max; i >= min; i--) {
-				this.offNoteNumber(i, offHandler);
+				off.push(this.onNoteNumber(i, offHandler));
 			}
 		}
+		return off;
 	};
 
 	// Removes all bound events.
@@ -166,109 +192,29 @@ export default class MIDIEvents extends Events {
 	};
 
 	keyboardKeyDown(message) {
-		if (this.keyboadKeyPressed[message.keyCode] != true) {
-			this.keyboadKeyPressed[message.keyCode] = true;
-			let newMessage = null;
-			switch (message.keyCode) {
-				case 90:
-					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 60);
-					break;
-				case 83:
-					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 61);
-					break;
-				case 88:
-					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 62);
-					break;
-				case 68:
-					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 63);
-					break;
-				case 67:
-					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 64);
-					break;
-				case 86:
-					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 65);
-					break;
-				case 71:
-					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 66);
-					break;
-				case 66:
-					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 67);
-					break;
-				case 72:
-					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 68);
-					break;
-				case 78:
-					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 69);
-					break;
-				case 74:
-					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 70);
-					break;
-				case 77:
-					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 71);
-					break;
-				case 188:
-					newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 72);
-					break;
-			}
-			if (newMessage !== null) {
-				this.sendMidiMessage(newMessage);
+		if (KEY_CODE_MAP[message.keyCode] != undefined) {
+			if (this.keyboadKeyPressed[message.keyCode] != true) {
+				this.keyboadKeyPressed[message.keyCode] = true;
+				let newMessage = Generate.NoteEvent(NOTE_ON_EVENT, KEY_CODE_MAP[message.keyCode]);
+				if (newMessage !== null) {
+					this.sendMidiMessage(newMessage);
+				}
 			}
 		}
 	};
 
 	keyboardKeyUp(message) {
-		if (this.keyboadKeyPressed[message.keyCode] == true) {
-			delete this.keyboadKeyPressed[message.keyCode];
-			let newMessage = null;
-			switch (message.keyCode) {
-				case 90:
-					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 60);
-					break;
-				case 83:
-					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 61);
-					break;
-				case 88:
-					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 62);
-					break;
-				case 68:
-					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 63);
-					break;
-				case 67:
-					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 64);
-					break;
-				case 86:
-					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 65);
-					break;
-				case 71:
-					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 66);
-					break;
-				case 66:
-					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 67);
-					break;
-				case 72:
-					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 68);
-					break;
-				case 78:
-					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 69);
-					break;
-				case 74:
-					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 70);
-					break;
-				case 77:
-					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 71);
-					break;
-				case 188:
-					newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 72);
-					break;
-			}
-			if (newMessage !== null) {
-				this.sendMidiMessage(newMessage);
+		if (KEY_CODE_MAP[message.keyCode] != undefined) {
+			if (this.keyboadKeyPressed[message.keyCode] == true) {
+				delete this.keyboadKeyPressed[message.keyCode];
+				let newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, KEY_CODE_MAP[message.keyCode]);
+				if (newMessage !== null) {
+					this.sendMidiMessage(newMessage);
+				}
 			}
 		}
 	}
 
-	sendMidiMessage(message) {
-
-	}
+	sendMidiMessage(message) {}
 
 }

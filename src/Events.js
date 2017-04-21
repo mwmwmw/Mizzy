@@ -14,16 +14,24 @@ export default class Events {
 	};
 
 	// unbind this event and handler
-	off(event) {
+	off(event, handler = null) {
 		if (this.listeners[event]) {
+
 			for (let i = this.listeners[event].length - 1; i >= 0; i--) {
 				if (this.listeners[event].length === 1) {
-					delete this.listeners[event];
+					if(handler == null) {
+						delete this.listeners[event];
+					} else {
+						if(this.listeners[event] == handler) {
+							delete this.listeners[event];
+						}
+					}
 				} else {
 					this.listeners[event].splice(i, 1);
 					break;
 				}
 			}
+
 		}
 	};
 }

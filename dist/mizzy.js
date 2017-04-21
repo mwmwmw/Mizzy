@@ -93,10 +93,19 @@ var Events = function () {
 
 		// unbind this event and handler
 		value: function off(event) {
+			var handler = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+
 			if (this.listeners[event]) {
+
 				for (var i = this.listeners[event].length - 1; i >= 0; i--) {
 					if (this.listeners[event].length === 1) {
-						delete this.listeners[event];
+						if (handler == null) {
+							delete this.listeners[event];
+						} else {
+							if (this.listeners[event] == handler) {
+								delete this.listeners[event];
+							}
+						}
 					} else {
 						this.listeners[event].splice(i, 1);
 						break;
@@ -381,9 +390,8 @@ var Generate = function () {
 	}, {
 		key: "PitchBend",
 		value: function PitchBend(value) {
-			// @todo http://stackoverflow.com/questions/30911185/javascript-reading-3-bytes-buffer-as-an-integer
-			var msb = 1,
-			    lsb = 1;
+			var msb = 0,
+			    lsb = 0;
 			return new Uint8Array([MIDI_PITCHBEND, msb, lsb]);
 		}
 	}, {
@@ -420,6 +428,22 @@ var Generate = function () {
 	}]);
 	return Generate;
 }();
+
+var KEY_CODE_MAP = {
+	"90": 60,
+	"83": 61,
+	"88": 62,
+	"68": 63,
+	"67": 64,
+	"86": 65,
+	"71": 66,
+	"66": 67,
+	"72": 68,
+	"78": 69,
+	"74": 70,
+	"77": 71,
+	"188": 72
+};
 
 var MIDIEvents = function (_Events) {
 	inherits(MIDIEvents, _Events);
@@ -507,12 +531,11 @@ var MIDIEvents = function (_Events) {
 
 		// EZ binding for Control Change data, just pass in the CC number and handler. Can only be unbound with unbindALL()
 		value: function onCC(cc, handler) {
-			var wrapper = function wrapper(data) {
+			return this.on(CONTROLLER_EVENT, function (data) {
 				if (data.cc == cc) {
 					handler(data);
 				}
-			};
-			this.on(CONTROLLER_EVENT, wrapper);
+			});
 		}
 	}, {
 		key: "keyToggle",
@@ -520,21 +543,28 @@ var MIDIEvents = function (_Events) {
 
 		// EZ binding for key presses, bind these two handlers to key on/off. Can only be unbound with unbindALL()
 		value: function keyToggle(handlerOn, handlerOff) {
-			this.on(NOTE_ON_EVENT, handlerOn);
-			this.on(NOTE_OFF_EVENT, handlerOff);
+			return {
+				on: this.on(NOTE_ON_EVENT, handlerOn),
+				off: this.on(NOTE_OFF_EVENT, handlerOff)
+			};
 		}
 	}, {
-		key: "onNoteNumber",
-
+		key: "removeKeyToggle",
+		value: function removeKeyToggle(toggles) {
+			this.off(NOTE_ON_EVENT, toggles.on);
+			this.off(NOTE_OFF_EVENT, toggles.off);
+		}
 
 		// EZ binding for key values. Can only be unbound with unbindALL()
+
+	}, {
+		key: "onNoteNumber",
 		value: function onNoteNumber(number, handler) {
-			var wrapper = function wrapper(data) {
+			return this.on(NOTE_ON_EVENT, function (data) {
 				if (data.value == number) {
 					handler(data);
 				}
-			};
-			this.on(NOTE_ON_EVENT, wrapper);
+			});
 		}
 	}, {
 		key: "offNoteNumber",
@@ -542,12 +572,11 @@ var MIDIEvents = function (_Events) {
 
 		// EZ binding for key values. Can only be unbound with unbindALL()
 		value: function offNoteNumber(number, handler) {
-			var wrapper = function wrapper(data) {
+			return this.on(NOTE_OFF_EVENT, function (data) {
 				if (data.value == number) {
 					handler(data);
 				}
-			};
-			this.on(NOTE_OFF_EVENT, wrapper);
+			});
 		}
 	}, {
 		key: "keyToggleRange",
@@ -555,34 +584,40 @@ var MIDIEvents = function (_Events) {
 
 		// EZ binding for a range of key values, bind these two handlers to key value. Can only be unbound with unbindALL()
 		value: function keyToggleRange(min, max, onHandler, offHandler) {
-			this.onRange(min, max, onHandler);
-			this.offRange(min, max, offHandler);
+			return {
+				onRange: this.onSplit(min, max, onHandler),
+				offRange: this.offSplit(min, max, offHandler)
+			};
 		}
 	}, {
 		key: "onSplit",
-		value: function onSplit(min, max, onHandler, offHandler) {
+		value: function onSplit(min, max, onHandler) {
+			var on = [];
 			if (max > min) {
 				for (var i = min; i <= max; i++) {
-					this.onNoteNumber(i, onHandler);
+					on.push(this.onNoteNumber(i, onHandler));
 				}
 			} else {
 				for (var _i = max; _i >= min; _i--) {
-					this.onNoteNumber(_i, onHandler);
+					on.push(this.onNoteNumber(_i, onHandler));
 				}
 			}
+			return on;
 		}
 	}, {
 		key: "offSplit",
-		value: function offSplit(min, max, onHandler, offHandler) {
+		value: function offSplit(min, max, offHandler) {
+			var off = [];
 			if (max > min) {
 				for (var i = min; i <= max; i++) {
-					this.offNoteNumber(i, offHandler);
+					off.push(this.onNoteNumber(i, offHandler));
 				}
 			} else {
 				for (var _i2 = max; _i2 >= min; _i2--) {
-					this.offNoteNumber(_i2, offHandler);
+					off.push(this.onNoteNumber(_i2, offHandler));
 				}
 			}
+			return off;
 		}
 	}, {
 		key: "unbindAll",
@@ -623,104 +658,26 @@ var MIDIEvents = function (_Events) {
 	}, {
 		key: "keyboardKeyDown",
 		value: function keyboardKeyDown(message) {
-			if (this.keyboadKeyPressed[message.keyCode] != true) {
-				this.keyboadKeyPressed[message.keyCode] = true;
-				var newMessage = null;
-				switch (message.keyCode) {
-					case 90:
-						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 60);
-						break;
-					case 83:
-						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 61);
-						break;
-					case 88:
-						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 62);
-						break;
-					case 68:
-						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 63);
-						break;
-					case 67:
-						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 64);
-						break;
-					case 86:
-						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 65);
-						break;
-					case 71:
-						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 66);
-						break;
-					case 66:
-						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 67);
-						break;
-					case 72:
-						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 68);
-						break;
-					case 78:
-						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 69);
-						break;
-					case 74:
-						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 70);
-						break;
-					case 77:
-						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 71);
-						break;
-					case 188:
-						newMessage = Generate.NoteEvent(NOTE_ON_EVENT, 72);
-						break;
-				}
-				if (newMessage !== null) {
-					this.sendMidiMessage(newMessage);
+			if (KEY_CODE_MAP[message.keyCode] != undefined) {
+				if (this.keyboadKeyPressed[message.keyCode] != true) {
+					this.keyboadKeyPressed[message.keyCode] = true;
+					var newMessage = Generate.NoteEvent(NOTE_ON_EVENT, KEY_CODE_MAP[message.keyCode]);
+					if (newMessage !== null) {
+						this.sendMidiMessage(newMessage);
+					}
 				}
 			}
 		}
 	}, {
 		key: "keyboardKeyUp",
 		value: function keyboardKeyUp(message) {
-			if (this.keyboadKeyPressed[message.keyCode] == true) {
-				delete this.keyboadKeyPressed[message.keyCode];
-				var newMessage = null;
-				switch (message.keyCode) {
-					case 90:
-						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 60);
-						break;
-					case 83:
-						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 61);
-						break;
-					case 88:
-						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 62);
-						break;
-					case 68:
-						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 63);
-						break;
-					case 67:
-						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 64);
-						break;
-					case 86:
-						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 65);
-						break;
-					case 71:
-						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 66);
-						break;
-					case 66:
-						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 67);
-						break;
-					case 72:
-						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 68);
-						break;
-					case 78:
-						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 69);
-						break;
-					case 74:
-						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 70);
-						break;
-					case 77:
-						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 71);
-						break;
-					case 188:
-						newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, 72);
-						break;
-				}
-				if (newMessage !== null) {
-					this.sendMidiMessage(newMessage);
+			if (KEY_CODE_MAP[message.keyCode] != undefined) {
+				if (this.keyboadKeyPressed[message.keyCode] == true) {
+					delete this.keyboadKeyPressed[message.keyCode];
+					var newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, KEY_CODE_MAP[message.keyCode]);
+					if (newMessage !== null) {
+						this.sendMidiMessage(newMessage);
+					}
 				}
 			}
 		}
@@ -773,6 +730,7 @@ var Mizzy = function (_MIDIEvents) {
 		_this.boundOutputs = [];
 
 		_this.key = ENHARMONIC_KEYS[0]; // C-Major
+
 		if (!window.MIDIMessageEvent) {
 			window.MIDIMessageEvent = function (name, params) {
 				_this.name = name;
