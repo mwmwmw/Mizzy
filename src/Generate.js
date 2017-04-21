@@ -41,9 +41,8 @@ export default class Generate {
 	}
 
 	static PitchBend(value) {
-		// @todo http://stackoverflow.com/questions/30911185/javascript-reading-3-bytes-buffer-as-an-integer
-		var msb = 1,
-			lsb = 1;
+		var msb = 0,
+			lsb = 0;
 		return new Uint8Array([MIDI_PITCHBEND, msb, lsb]);
 	}
 
