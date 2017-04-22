@@ -17,9 +17,9 @@ describe('Mizzy Public Constants', function () {
 
 describe('Mizzy Generate Output', function () {
 	it("Correct values are assigned for note on messages", function () {
-		for(var i = 0; i < 100; i++) {
-			var note = Math.floor(Math.random()*127);
-			var vel = Math.floor(Math.random()*127);
+		for (var i = 0; i < 100; i++) {
+			var note = Math.floor(Math.random() * 127);
+			var vel = Math.floor(Math.random() * 127);
 			var msg = Mizzy.Generate.NoteOn(note, vel);
 			assert.equal(msg[0], MIDI_NOTE_ON);
 			assert.equal(msg[1], note);
@@ -27,9 +27,9 @@ describe('Mizzy Generate Output', function () {
 		}
 	});
 	it("Correct values are assigned for note off messages", function () {
-		for(var i = 0; i < 100; i++) {
-			var note = Math.floor(Math.random()*127);
-			var vel = Math.floor(Math.random()*127);
+		for (var i = 0; i < 100; i++) {
+			var note = Math.floor(Math.random() * 127);
+			var vel = Math.floor(Math.random() * 127);
 			var msg = Mizzy.Generate.NoteOff(note, vel);
 			assert.equal(msg[0], MIDI_NOTE_OFF);
 			assert.equal(msg[1], note);
@@ -37,9 +37,9 @@ describe('Mizzy Generate Output', function () {
 		}
 	});
 	it("Correct values are assigned for aftertouch messages", function () {
-		for(var i = 0; i < 100; i++) {
-			var note = Math.floor(Math.random()*127);
-			var vel = Math.floor(Math.random()*127);
+		for (var i = 0; i < 100; i++) {
+			var note = Math.floor(Math.random() * 127);
+			var vel = Math.floor(Math.random() * 127);
 			var msg = Mizzy.Generate.AfterTouch(note, vel);
 			assert.equal(msg[0], MIDI_AFTERTOUCH);
 			assert.equal(msg[1], note);
@@ -47,9 +47,9 @@ describe('Mizzy Generate Output', function () {
 		}
 	});
 	it("Correct values are assigned for CC messages", function () {
-		for(var i = 0; i < 100; i++) {
-			var note = Math.floor(Math.random()*127);
-			var vel = Math.floor(Math.random()*127);
+		for (var i = 0; i < 100; i++) {
+			var note = Math.floor(Math.random() * 127);
+			var vel = Math.floor(Math.random() * 127);
 			var msg = Mizzy.Generate.AfterTouch(note, vel);
 			assert.equal(msg[0], MIDI_AFTERTOUCH);
 			assert.equal(msg[1], note);
@@ -57,9 +57,9 @@ describe('Mizzy Generate Output', function () {
 		}
 	});
 	it("Correct values are assigned for Program Change messages", function () {
-		for(var i = 0; i < 100; i++) {
-			var CC = Math.floor(Math.random()*127);
-			var val = Math.floor(Math.random()*127);
+		for (var i = 0; i < 100; i++) {
+			var CC = Math.floor(Math.random() * 127);
+			var val = Math.floor(Math.random() * 127);
 			var msg = Mizzy.Generate.CC(CC, val);
 			assert.equal(msg[0], MIDI_CONTROL_CHANGE);
 			assert.equal(msg[1], CC);
@@ -67,23 +67,23 @@ describe('Mizzy Generate Output', function () {
 		}
 	});
 	it("Correct values are assigned for Channel Pressure messages", function () {
-		for(var i = 0; i < 100; i++) {
-			var val = Math.floor(Math.random()*127);
+		for (var i = 0; i < 100; i++) {
+			var val = Math.floor(Math.random() * 127);
 			var msg = Mizzy.Generate.ChannelPressure(val);
 			assert.equal(msg[0], MIDI_CHANNEL_PRESSURE);
 			assert.equal(msg[1], val);
 		}
 	});
 	it("Correct values are assigned for Program Change messages", function () {
-		for(var i = 0; i < 100; i++) {
-			var val = Math.floor(Math.random()*127);
+		for (var i = 0; i < 100; i++) {
+			var val = Math.floor(Math.random() * 127);
 			var msg = Mizzy.Generate.ProgramChange(val);
 			assert.equal(msg[0], MIDI_PROGRAM_CHANGE);
 			assert.equal(msg[1], val);
 		}
 	});
 	it("Correct values are assigned for Pitchbend messages", function () {
-		for(var i = 0; i < 100; i++) {
+		for (var i = 0; i < 100; i++) {
 			var val = 16384;
 			var msg = Mizzy.Generate.PitchBend(val);
 			assert.equal(msg[0], MIDI_PITCHBEND);
@@ -97,18 +97,70 @@ describe('Mizzy Instances', function () {
 
 	it("New Mizzy Instance Created", function () {
 		var m = new Mizzy();
-		assert(m.loopback, true);
-		assert(m.key, "C");
-		assert(m.listeners instanceof Object, true);
-		assert(m.keysPressed instanceof Array, true);
-		assert(m.boundInputs instanceof Array, true);
-		assert(m.boundOutputs instanceof Array, true);
+		assert.equal(m.loopback, true);
+		assert.equal(m.key, "C");
+		assert.equal(m.listeners instanceof Object, true);
+		assert.equal(m.keysPressed.length, 0);
+		assert.equal(m.boundInputs.length, 0);
+		assert.equal(m.boundOutputs.length, 0);
 	});
 
 	it("New Mizzy Instance Initialized", function () {
 		var m = new Mizzy();
 		var x = m.initialize();
-			assert(x instanceof Promise, true);
+		assert.equal(x instanceof Promise, true);
+	});
+
+
+});
+
+describe('Mizzy Event Binding', function () {
+
+	it("Bind Events and Unbind", function() {
+		var m = new Mizzy();
+		m.initialize();
+
+		assert.isFunction(m.on("test1", function(){}));
+		assert.isBoolean(m.off("test1"));
+
+		assert.isFunction(m.onCC(1, function(){}));
+		assert.isBoolean(m.removeCC(1));
+
+
+		var toggle = m.keyToggle(function(){return true;}, function() {return true;});
+		var cc = m.onCC(1, function(){return true;});
+		assert.equal(m.listeners["NoteOn"].length, 1);
+		assert.equal(m.listeners["NoteOff"].length, 1);
+		assert.equal(m.listeners["Controller"].length, 1);
+		//
+		assert.isTrue(m.removeCC(cc));
+		//
+		m.removeKeyToggle(toggle);
+
+		//
+		assert.isUndefined(m.listeners["NoteOn"]);
+		// assert.isUndefined(m.listeners["NoteOff"]);
+		assert.isUndefined(m.listeners["Controller"]);
+
+	});
+
+	it("Bind Events and Unbind", function() {
+		var m = new Mizzy();
+		m.initialize();
+
+		assert.isFunction(m.on("test1", function(){}));
+		assert.isBoolean(m.off("test1"));
+
+		assert.isFunction(m.onCC(1, function(){}));
+		assert.isBoolean(m.removeCC(1));
+
+
+		var toggle = m.keyToggle(function(){return true;}, function() {return true;});
+		var cc = m.onCC(1, function(){return true;});
+		assert.equal(m.listeners["NoteOn"].length, 1);
+		assert.equal(m.listeners["NoteOff"].length, 1);
+		assert.equal(m.listeners["Controller"].length, 1);
+
 	});
 
 });
@@ -119,7 +171,8 @@ describe('Mizzy Instances', function () {
 	// other code modifying setTimeout (like sinon.useFakeTimers())
 	var setTimeoutFunc = setTimeout;
 
-	function noop() {}
+	function noop() {
+	}
 
 	// Polyfill for Function.prototype.bind
 	function bind(fn, thisArg) {
@@ -197,7 +250,7 @@ describe('Mizzy Instances', function () {
 
 	function finale(self) {
 		if (self._state === 2 && self._deferreds.length === 0) {
-			Promise._immediateFn(function() {
+			Promise._immediateFn(function () {
 				if (!self._handled) {
 					Promise._unhandledRejectionFn(self._value);
 				}
@@ -310,7 +363,9 @@ describe('Mizzy Instances', function () {
 	};
 
 	// Use polyfill for setImmediate for performance gains
-	Promise._immediateFn = (typeof setImmediate === 'function' && function (fn) { setImmediate(fn); }) ||
+	Promise._immediateFn = (typeof setImmediate === 'function' && function (fn) {
+			setImmediate(fn);
+		}) ||
 		function (fn) {
 			setTimeoutFunc(fn, 0);
 		};
