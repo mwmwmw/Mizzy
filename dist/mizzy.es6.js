@@ -16,24 +16,30 @@ class Events {
 	// unbind this event and handler
 	off(event, handler = null) {
 		if (this.listeners[event]) {
-
-			for (let i = this.listeners[event].length - 1; i >= 0; i--) {
-				if (this.listeners[event].length === 1) {
-					if(handler == null) {
+			if (handler == null) {
+				for (let i = this.listeners[event].length - 1; i >= 0; i--) {
+					if (this.listeners[event].length === 1) {
 						delete this.listeners[event];
+						return true;
 					} else {
-						if(this.listeners[event] == handler) {
+						this.listeners[event].splice(i, 1);
+						return true;
+					}
+				}
+			} else {
+				for (let i = 0; i < this.listeners[event].length; i++) {
+					if (this.listeners[event][i] == handler) {
+						this.listeners[event].splice(i, 1);
+						if(this.listeners[event].length === 0) {
 							delete this.listeners[event];
 						}
+						return true;
 					}
-				} else {
-					this.listeners[event].splice(i, 1);
-					break;
 				}
 			}
-
 		}
-	};
+		return false;
+	}
 }
 
 const GLOBAL_TUNE = 440;
@@ -256,13 +262,11 @@ class Generate {
 	}
 
 	static PitchBend(value) {
-		// @todo http://stackoverflow.com/questions/30911185/javascript-reading-3-bytes-buffer-as-an-integer
-		var msb = parseInt(value, 2),
-			lsb = parseInt(value, 2);
-		console.log(msb, lsb);
+		var msb = 0,
+			lsb = 0;
 		return new Uint8Array([MIDI_PITCHBEND, msb, lsb]);
 	}
-	
+
 	static NoteEvent(messageType, value, velocity = 127) {
 		let data = null;
 		switch (messageType) {
@@ -380,7 +384,11 @@ class MIDIEvents extends Events {
 				handler(data);
 			}
 		});
-	};
+	}
+
+	removeCC(cc, handler) {
+		return this.off(CONTROLLER_EVENT, handler);
+	}
 
 	// EZ binding for key presses, bind these two handlers to key on/off. Can only be unbound with unbindALL()
 	keyToggle(handlerOn, handlerOff) {

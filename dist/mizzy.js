@@ -96,22 +96,29 @@ var Events = function () {
 			var handler = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
 
 			if (this.listeners[event]) {
-
-				for (var i = this.listeners[event].length - 1; i >= 0; i--) {
-					if (this.listeners[event].length === 1) {
-						if (handler == null) {
+				if (handler == null) {
+					for (var i = this.listeners[event].length - 1; i >= 0; i--) {
+						if (this.listeners[event].length === 1) {
 							delete this.listeners[event];
+							return true;
 						} else {
-							if (this.listeners[event] == handler) {
+							this.listeners[event].splice(i, 1);
+							return true;
+						}
+					}
+				} else {
+					for (var _i = 0; _i < this.listeners[event].length; _i++) {
+						if (this.listeners[event][_i] == handler) {
+							this.listeners[event].splice(_i, 1);
+							if (this.listeners[event].length === 0) {
 								delete this.listeners[event];
 							}
+							return true;
 						}
-					} else {
-						this.listeners[event].splice(i, 1);
-						break;
 					}
 				}
 			}
+			return false;
 		}
 	}]);
 	return Events;
@@ -538,10 +545,15 @@ var MIDIEvents = function (_Events) {
 			});
 		}
 	}, {
-		key: "keyToggle",
-
+		key: "removeCC",
+		value: function removeCC(cc, handler) {
+			return this.off(CONTROLLER_EVENT, handler);
+		}
 
 		// EZ binding for key presses, bind these two handlers to key on/off. Can only be unbound with unbindALL()
+
+	}, {
+		key: "keyToggle",
 		value: function keyToggle(handlerOn, handlerOff) {
 			return {
 				on: this.on(NOTE_ON_EVENT, handlerOn),
