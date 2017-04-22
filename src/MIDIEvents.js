@@ -1,3 +1,6 @@
+/**
+ * MIDIEvents - contains all the functionality for binding and removing MIDI events
+ */
 import Events from "./Events";
 import DataProcess from "./DataProcess";
 import Generate from "./Generate";
@@ -36,6 +39,11 @@ export default class MIDIEvents extends Events {
 		this.keyboadKeyPressed = [];
 	}
 
+	/**
+	 * onMIDIMessage handles all incoming midi messages, processes them and then routes them to the correct event handler.
+	 * @param message
+	 * @param key
+	 */
 	onMIDIMessage(message, key = ENHARMONIC_KEYS[0]) {
 		let eventName = null, data = null;
 		switch (message.data[0]) {
@@ -82,7 +90,12 @@ export default class MIDIEvents extends Events {
 	};
 
 
-	// EZ binding for Control Change data, just pass in the CC number and handler. Can only be unbound with unbindALL()
+	/**
+	 * EZ binding for a single Control Change data, just pass in the CC number and handler. This returns an anonymous function which you should store a reference to if you want to unbind this CC later.
+	 * @param cc
+	 * @param handler
+	 * @returns {Function}
+	 */
 	onCC(cc, handler) {
 		return this.on(CONTROLLER_EVENT, data => {
 			if (data.cc == cc) {
@@ -91,46 +104,86 @@ export default class MIDIEvents extends Events {
 		});
 	}
 
-	removeCC(cc, handler) {
+	/**
+	 * Takes the CC# and Event handler and removes the event from the listeners.
+	 * @param handler
+	 * @returns {Boolean}
+	 */
+	removeCC(handler) {
 		return this.off(CONTROLLER_EVENT, handler);
 	}
 
-	// EZ binding for key presses, bind these two handlers to key on/off. Can only be unbound with unbindALL()
-	keyToggle(handlerOn, handlerOff) {
+	/**
+	 * KeyToggle will bind to all MIDI note events and execute the `keyDown` handler when the key is pressed and `keyUp` handler when the key is released. This function returns the reference to the handlers created for these events. Pass this reference into removeKeyToggle to unbind these events.
+	 *
+	 * ### Usage
+	 * ```
+	 * var m = new Mizzy();
+	 * var toggleKeys = m.keyToggle((e) => console.log(e),(e) => console.log(e));
+	 * // when ready to unbind
+	 * m.removeKeyToggle(toggleKeys);
+	 * ```
+	 *
+	 * @param handlerOn
+	 * @param handlerOff
+	 * @returns {{on: Function, off: Function}}
+	 */
+	keyToggle(keyDown, keyUp) {
 		return {
-			on: this.on(NOTE_ON_EVENT, handlerOn),
-			off: this.on(NOTE_OFF_EVENT, handlerOff)
+			keyDown: this.on(NOTE_ON_EVENT, keyDown),
+			keyUp: this.on(NOTE_OFF_EVENT, keyUp)
 		}
 	};
 
+	/**
+	 * This will unbind the keyToggle. Pass in the reference created when you called `keyToggle()`
+	 * @param toggles
+	 */
 	removeKeyToggle(toggles) {
-		this.off(NOTE_ON_EVENT, toggles.on);
-		this.off(NOTE_OFF_EVENT, toggles.off);
+		this.off(NOTE_ON_EVENT, toggles.keyDown);
+		this.off(NOTE_OFF_EVENT, toggles.keyUp);
 	}
 
-	// EZ binding for key values. Can only be unbound with unbindALL()
-	onNoteNumber(number, handler) {
+	/**
+	 * EZ binding for individual key values. Pass in the note number you want to wait for (ie 60 = middle c) and the handler for it. This function will return a reference to the handler created for this note.
+	 * @param number
+	 * @param handler
+	 * @returns {Function}
+	 */
+	pressNoteNumber(number, handler) {
 		return this.on(NOTE_ON_EVENT, data => {
 			if (data.value == number) {
 				handler(data);
 			}
 		});
 	};
-
+	removePressNoteNumber(handler) {
+		return this.off(NOTE_ON_EVENT, handler);
+	}
 	// EZ binding for key values. Can only be unbound with unbindALL()
-	offNoteNumber(number, handler) {
+	releaseNoteNumber(number, handler) {
 		return this.on(NOTE_OFF_EVENT, data => {
 			if (data.value == number) {
 				handler(data);
 			}
 		});
 	};
+	removeReleaseNoteNumber(handler) {
+		return this.off(NOTE_OFF_EVENT, handler);
+	}
 
-	// EZ binding for a range of key values, bind these two handlers to key value. Can only be unbound with unbindALL()
+	/**
+	 * Bind keyboard splits. 
+	 * @param min
+	 * @param max
+	 * @param onHandler
+	 * @param offHandler
+	 * @returns {{onRange: Array, offRange: Array}}
+	 */
 	keyToggleRange(min, max, onHandler, offHandler) {
 		return {
-			onRange: this.onSplit(min, max, onHandler),
-			offRange: this.offSplit(min, max, offHandler)
+			press: this.onSplit(min, max, onHandler),
+			release: this.offSplit(min, max, offHandler)
 		}
 	};
 
@@ -138,11 +191,11 @@ export default class MIDIEvents extends Events {
 		let on = [];
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
-				on.push(this.onNoteNumber(i, onHandler));
+				on.push(this.pressNoteNumber(i, onHandler));
 			}
 		} else {
 			for (let i = max; i >= min; i--) {
-				on.push(this.onNoteNumber(i, onHandler));
+				on.push(this.pressNoteNumber(i, onHandler));
 			}
 		}
 		return on;
@@ -152,17 +205,26 @@ export default class MIDIEvents extends Events {
 		let off = [];
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
-				off.push(this.onNoteNumber(i, offHandler));
+				off.push(this.releaseNoteNumber(i, offHandler));
 			}
 		} else {
 			for (let i = max; i >= min; i--) {
-				off.push(this.onNoteNumber(i, offHandler));
+				off.push(this.releaseNoteNumber(i, offHandler));
 			}
 		}
 		return off;
 	};
 
-	// Removes all bound events.
+	removeKeyToggleRange (ranges) {
+		var removeOnRanges = ranges.press.forEach((noteHandler) => this.removePressNoteNumber(noteHandler) );
+		var removeOffRanges = ranges.release.forEach((noteHandler) => this.removeReleaseNoteNumber(noteHandler) );
+		return removeOffRanges == true && removeOnRanges == true;
+	}
+
+	/**
+	 * Removes all bound handlers for all events. Great for when you know you need to lose all the events.
+	 * @returns {boolean}
+	 */
 	unbindAll() {
 		this.unBindKeyboard();
 		for (let event in this.listeners) {
@@ -171,6 +233,9 @@ export default class MIDIEvents extends Events {
 		return true;
 	};
 
+	/**
+	 * Bind the computer (qwerty) keyboard to allow it to generate MIDI note on and note off messages.
+	 */
 	bindKeyboard() {
 		window.addEventListener(KEYBOARD_EVENT_KEY_DOWN, (e) => this.keyboardKeyDown(e));
 		window.addEventListener(KEYBOARD_EVENT_KEY_UP, (e) => this.keyboardKeyUp(e));

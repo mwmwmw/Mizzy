@@ -116,54 +116,97 @@ describe('Mizzy Instances', function () {
 
 describe('Mizzy Event Binding', function () {
 
-	it("Bind Events and Unbind", function() {
+	it("Events Bind and Unbind", function () {
 		var m = new Mizzy();
 		m.initialize();
-
-		assert.isFunction(m.on("test1", function(){}));
+		assert.isFunction(m.on("test1", function () {
+		}));
 		assert.isBoolean(m.off("test1"));
+		var cc1 = m.onCC(1, function () {
+		});
+		assert.isFunction(cc1);
+		assert.isTrue(m.removeCC(cc1));
+	});
 
-		assert.isFunction(m.onCC(1, function(){}));
-		assert.isBoolean(m.removeCC(1));
-
-
-		var toggle = m.keyToggle(function(){return true;}, function() {return true;});
-		var cc = m.onCC(1, function(){return true;});
+	it("Key Toggle Bind and Unbind", function () {
+		var m = new Mizzy();
+		m.initialize();
+		var toggle = m.keyToggle(function () {
+			return true;
+		}, function () {
+			return true;
+		});
+		var cc = m.onCC(1, function () {
+			return true;
+		});
 		assert.equal(m.listeners["NoteOn"].length, 1);
 		assert.equal(m.listeners["NoteOff"].length, 1);
 		assert.equal(m.listeners["Controller"].length, 1);
-		//
 		assert.isTrue(m.removeCC(cc));
-		//
 		m.removeKeyToggle(toggle);
-
-		//
 		assert.isUndefined(m.listeners["NoteOn"]);
-		// assert.isUndefined(m.listeners["NoteOff"]);
-		assert.isUndefined(m.listeners["Controller"]);
-
+		assert.isUndefined(m.listeners["NoteOff"]);
 	});
 
-	it("Bind Events and Unbind", function() {
+	it("CC Bind and Unbind", function () {
 		var m = new Mizzy();
 		m.initialize();
-
-		assert.isFunction(m.on("test1", function(){}));
-		assert.isBoolean(m.off("test1"));
-
-		assert.isFunction(m.onCC(1, function(){}));
-		assert.isBoolean(m.removeCC(1));
-
-
-		var toggle = m.keyToggle(function(){return true;}, function() {return true;});
-		var cc = m.onCC(1, function(){return true;});
-		assert.equal(m.listeners["NoteOn"].length, 1);
-		assert.equal(m.listeners["NoteOff"].length, 1);
+		var cc = m.onCC(1, function () {
+			return true;
+		});
 		assert.equal(m.listeners["Controller"].length, 1);
-
+		assert.isTrue(m.removeCC(cc));
+		assert.isUndefined(m.listeners["Controller"]);
 	});
+
+	it("Key Range Bind and Unbind", function () {
+		var m = new Mizzy();
+		m.initialize();
+		var toggle = m.keyToggleRange(0, 127, function () {
+		}, function () {
+		});
+		assert.equal(m.listeners["NoteOn"].length, 128);
+		assert.equal(m.listeners["NoteOff"].length, 128);
+		m.removeKeyToggleRange(toggle);
+		assert.isUndefined(m.listeners["NoteOn"]);
+		assert.isUndefined(m.listeners["NoteOff"]);
+	})
+
+	it("Note On Bind and Unbind", function () {
+		var m = new Mizzy();
+		m.initialize();
+		var noteOns = [];
+		for (var i = 0; i < 100; i++) {
+			noteOns.push(m.pressNoteNumber(randomMidiNote(), function () {
+			}));
+		}
+		assert.equal(m.listeners["NoteOn"].length, 100);
+		noteOns.forEach(function (note) {
+			m.removePressNoteNumber(note)
+		});
+		assert.isUndefined(m.listeners["NoteOn"]);
+	})
+
+	it("Note Off Bind and Unbind", function () {
+		var m = new Mizzy();
+		m.initialize();
+		var noteOffs = [];
+		for (var i = 0; i < 100; i++) {
+			noteOffs.push(m.releaseNoteNumber(randomMidiNote(), function () {
+			}));
+		}
+		assert.equal(m.listeners["NoteOff"].length, 100);
+		noteOffs.forEach(function (note) {
+			m.removeReleaseNoteNumber(note)
+		});
+		assert.isUndefined(m.listeners["NoteOff"]);
+	})
 
 });
+
+function randomMidiNote() {
+	return Math.floor(Math.random() * 127);
+}
 
 (function (root) {
 
