@@ -119,6 +119,21 @@ var Events = function () {
 			}
 			return false;
 		}
+	}, {
+		key: "trigger",
+		value: function trigger(event, data) {
+			if (this.listeners[event]) {
+				for (var i = this.listeners[event].length - 1; i >= 0; i--) {
+					if (this.listeners[event] !== undefined) {
+						if (typeof this.listeners[event][i] === "function" && this.listeners[event][i]) {
+							this.listeners[event][i](data);
+						} else {
+							throw "Event handler is not a function.";
+						}
+					}
+				}
+			}
+		}
 	}]);
 	return Events;
 }();
@@ -435,6 +450,9 @@ var Generate = function () {
 	return Generate;
 }();
 
+/**
+ * MIDIEvents - contains all the functionality for binding and removing MIDI events
+ */
 var KEY_CODE_MAP = {
 	"90": 60,
 	"83": 61,
@@ -463,6 +481,13 @@ var MIDIEvents = function (_Events) {
 		_this.keyboadKeyPressed = [];
 		return _this;
 	}
+
+	/**
+  * onMIDIMessage handles all incoming midi messages, processes them and then routes them to the correct event handler.
+  * @param message
+  * @param key
+  */
+
 
 	createClass(MIDIEvents, [{
 		key: "onMIDIMessage",
@@ -510,32 +535,19 @@ var MIDIEvents = function (_Events) {
 			}
 			// if there is no event name, then we don't support that event yet so do nothing.
 			if (eventName !== null) {
-				this.executeEventHandlers(eventName, data);
-			}
-		}
-	}, {
-		key: "executeEventHandlers",
-
-
-		// loop through all the bound events and execute with the newly processed data.
-		value: function executeEventHandlers(event, data) {
-			if (this.listeners[event]) {
-				for (var i = this.listeners[event].length - 1; i >= 0; i--) {
-					if (this.listeners[event] !== undefined) {
-						if (typeof this.listeners[event][i] === "function" && this.listeners[event][i]) {
-							this.listeners[event][i](data);
-						} else {
-							throw "Event handler is not a function.";
-						}
-					}
-				}
+				this.trigger(eventName, data);
 			}
 		}
 	}, {
 		key: "onCC",
 
 
-		// EZ binding for Control Change data, just pass in the CC number and handler. Can only be unbound with unbindALL()
+		/**
+   * EZ binding for a single Control Change data, just pass in the CC number and handler. This returns an anonymous function which you should store a reference to if you want to unbind this CC later.
+   * @param cc
+   * @param handler
+   * @returns {Function}
+   */
 		value: function onCC(cc, handler) {
 			return this.on(CONTROLLER_EVENT, function (data) {
 				if (data.cc == cc) {
@@ -543,34 +555,66 @@ var MIDIEvents = function (_Events) {
 				}
 			});
 		}
+
+		/**
+   * Takes the CC# and Event handler and removes the event from the listeners.
+   * @param handler
+   * @returns {Boolean}
+   */
+
 	}, {
 		key: "removeCC",
-		value: function removeCC(cc, handler) {
+		value: function removeCC(handler) {
 			return this.off(CONTROLLER_EVENT, handler);
 		}
 
-		// EZ binding for key presses, bind these two handlers to key on/off. Can only be unbound with unbindALL()
+		/**
+   * KeyToggle will bind to all MIDI note events and execute the `keyDown` handler when the key is pressed and `keyUp` handler when the key is released. This function returns the reference to the handlers created for these events. Pass this reference into removeKeyToggle to unbind these events.
+   *
+   * ### Usage
+   * ```
+   * var m = new Mizzy();
+   * var toggleKeys = m.keyToggle((e) => console.log(e),(e) => console.log(e));
+   * // when ready to unbind
+   * m.removeKeyToggle(toggleKeys);
+   * ```
+   *
+   * @param handlerOn
+   * @param handlerOff
+   * @returns {{on: Function, off: Function}}
+   */
 
 	}, {
 		key: "keyToggle",
-		value: function keyToggle(handlerOn, handlerOff) {
+		value: function keyToggle(keyDown, keyUp) {
 			return {
-				on: this.on(NOTE_ON_EVENT, handlerOn),
-				off: this.on(NOTE_OFF_EVENT, handlerOff)
+				keyDown: this.on(NOTE_ON_EVENT, keyDown),
+				keyUp: this.on(NOTE_OFF_EVENT, keyUp)
 			};
 		}
 	}, {
 		key: "removeKeyToggle",
+
+
+		/**
+   * This will unbind the keyToggle. Pass in the reference created when you called `keyToggle()`
+   * @param toggles
+   */
 		value: function removeKeyToggle(toggles) {
-			this.off(NOTE_ON_EVENT, toggles.on);
-			this.off(NOTE_OFF_EVENT, toggles.off);
+			this.off(NOTE_ON_EVENT, toggles.keyDown);
+			this.off(NOTE_OFF_EVENT, toggles.keyUp);
 		}
 
-		// EZ binding for key values. Can only be unbound with unbindALL()
+		/**
+   * EZ binding for individual key values. Pass in the note number you want to wait for (ie 60 = middle c) and the handler for it. This function will return a reference to the handler created for this note.
+   * @param number
+   * @param handler
+   * @returns {Function}
+   */
 
 	}, {
-		key: "onNoteNumber",
-		value: function onNoteNumber(number, handler) {
+		key: "pressNoteNumber",
+		value: function pressNoteNumber(number, handler) {
 			return this.on(NOTE_ON_EVENT, function (data) {
 				if (data.value == number) {
 					handler(data);
@@ -578,11 +622,15 @@ var MIDIEvents = function (_Events) {
 			});
 		}
 	}, {
-		key: "offNoteNumber",
-
-
+		key: "removePressNoteNumber",
+		value: function removePressNoteNumber(handler) {
+			return this.off(NOTE_ON_EVENT, handler);
+		}
 		// EZ binding for key values. Can only be unbound with unbindALL()
-		value: function offNoteNumber(number, handler) {
+
+	}, {
+		key: "releaseNoteNumber",
+		value: function releaseNoteNumber(number, handler) {
 			return this.on(NOTE_OFF_EVENT, function (data) {
 				if (data.value == number) {
 					handler(data);
@@ -590,14 +638,26 @@ var MIDIEvents = function (_Events) {
 			});
 		}
 	}, {
+		key: "removeReleaseNoteNumber",
+		value: function removeReleaseNoteNumber(handler) {
+			return this.off(NOTE_OFF_EVENT, handler);
+		}
+
+		/**
+   * Bind keyboard splits. 
+   * @param min
+   * @param max
+   * @param onHandler
+   * @param offHandler
+   * @returns {{onRange: Array, offRange: Array}}
+   */
+
+	}, {
 		key: "keyToggleRange",
-
-
-		// EZ binding for a range of key values, bind these two handlers to key value. Can only be unbound with unbindALL()
 		value: function keyToggleRange(min, max, onHandler, offHandler) {
 			return {
-				onRange: this.onSplit(min, max, onHandler),
-				offRange: this.offSplit(min, max, offHandler)
+				press: this.onSplit(min, max, onHandler),
+				release: this.offSplit(min, max, offHandler)
 			};
 		}
 	}, {
@@ -606,11 +666,11 @@ var MIDIEvents = function (_Events) {
 			var on = [];
 			if (max > min) {
 				for (var i = min; i <= max; i++) {
-					on.push(this.onNoteNumber(i, onHandler));
+					on.push(this.pressNoteNumber(i, onHandler));
 				}
 			} else {
 				for (var _i = max; _i >= min; _i--) {
-					on.push(this.onNoteNumber(_i, onHandler));
+					on.push(this.pressNoteNumber(_i, onHandler));
 				}
 			}
 			return on;
@@ -621,20 +681,36 @@ var MIDIEvents = function (_Events) {
 			var off = [];
 			if (max > min) {
 				for (var i = min; i <= max; i++) {
-					off.push(this.onNoteNumber(i, offHandler));
+					off.push(this.releaseNoteNumber(i, offHandler));
 				}
 			} else {
 				for (var _i2 = max; _i2 >= min; _i2--) {
-					off.push(this.onNoteNumber(_i2, offHandler));
+					off.push(this.releaseNoteNumber(_i2, offHandler));
 				}
 			}
 			return off;
 		}
 	}, {
+		key: "removeKeyToggleRange",
+		value: function removeKeyToggleRange(ranges) {
+			var _this2 = this;
+
+			var removeOnRanges = ranges.press.forEach(function (noteHandler) {
+				return _this2.removePressNoteNumber(noteHandler);
+			});
+			var removeOffRanges = ranges.release.forEach(function (noteHandler) {
+				return _this2.removeReleaseNoteNumber(noteHandler);
+			});
+			return removeOffRanges == true && removeOnRanges == true;
+		}
+
+		/**
+   * Removes all bound handlers for all events. Great for when you know you need to lose all the events.
+   * @returns {boolean}
+   */
+
+	}, {
 		key: "unbindAll",
-
-
-		// Removes all bound events.
 		value: function unbindAll() {
 			this.unBindKeyboard();
 			for (var event in this.listeners) {
@@ -644,26 +720,31 @@ var MIDIEvents = function (_Events) {
 		}
 	}, {
 		key: "bindKeyboard",
+
+
+		/**
+   * Bind the computer (qwerty) keyboard to allow it to generate MIDI note on and note off messages.
+   */
 		value: function bindKeyboard() {
-			var _this2 = this;
+			var _this3 = this;
 
 			window.addEventListener(KEYBOARD_EVENT_KEY_DOWN, function (e) {
-				return _this2.keyboardKeyDown(e);
+				return _this3.keyboardKeyDown(e);
 			});
 			window.addEventListener(KEYBOARD_EVENT_KEY_UP, function (e) {
-				return _this2.keyboardKeyUp(e);
+				return _this3.keyboardKeyUp(e);
 			});
 		}
 	}, {
 		key: "unBindKeyboard",
 		value: function unBindKeyboard() {
-			var _this3 = this;
+			var _this4 = this;
 
 			window.removeEventListener(KEYBOARD_EVENT_KEY_DOWN, function (e) {
-				return _this3.keyboardKeyDown(e);
+				return _this4.keyboardKeyDown(e);
 			});
 			window.removeEventListener(KEYBOARD_EVENT_KEY_UP, function (e) {
-				return _this3.keyboardKeyUp(e);
+				return _this4.keyboardKeyUp(e);
 			});
 		}
 	}, {
