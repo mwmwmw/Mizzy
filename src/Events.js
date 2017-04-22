@@ -16,22 +16,28 @@ export default class Events {
 	// unbind this event and handler
 	off(event, handler = null) {
 		if (this.listeners[event]) {
-
-			for (let i = this.listeners[event].length - 1; i >= 0; i--) {
-				if (this.listeners[event].length === 1) {
-					if(handler == null) {
+			if (handler == null) {
+				for (let i = this.listeners[event].length - 1; i >= 0; i--) {
+					if (this.listeners[event].length === 1) {
 						delete this.listeners[event];
+						return true;
 					} else {
-						if(this.listeners[event] == handler) {
+						this.listeners[event].splice(i, 1);
+						return true;
+					}
+				}
+			} else {
+				for (let i = 0; i < this.listeners[event].length; i++) {
+					if (this.listeners[event][i] == handler) {
+						this.listeners[event].splice(i, 1);
+						if(this.listeners[event].length === 0) {
 							delete this.listeners[event];
 						}
+						return true;
 					}
-				} else {
-					this.listeners[event].splice(i, 1);
-					break;
 				}
 			}
-
 		}
-	};
+		return false;
+	}
 }
