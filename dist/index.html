@@ -10,9 +10,21 @@
 		    m.bindToAllInputs();
 		    m.bindToAllOutputs();
 		    m.bindKeyboard();
-		    m.keyToggle((e) => console.log("ON",e.note, e.frequency),(e) => console.log("OFF",e.note, e.frequency))
-		    m.onCC(1, (e) => console.log("CC", e.value))
-	    })
+
+		    var toggles = m.keyToggle((e) => console.log("ON",e.note, e.frequency),(e) => console.log("OFF",e.note, e.frequency));
+
+		    var CCref = m.onCC(1, (e) => console.log("CC", e.value));
+
+            m.onCC(1,(e) => console.log("CC-b", e.value));
+
+		    setTimeout(() => {
+		    	m.removeKeyToggle(toggles);
+		    	m.removeCC(1,CCref);
+			}, 5000);
+		    setTimeout(()=> {
+		    	m.unbindAll();
+            }, 10000);
+	    });
 	    window.addEventListener("mousemove", (e)=> {
 		    var x = Math.round((e.pageX / window.innerWidth) * 127);
 		    var y = Math.round((e.pageY / window.innerHeight) * 127);
