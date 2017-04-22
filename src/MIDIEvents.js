@@ -103,7 +103,11 @@ export default class MIDIEvents extends Events {
 				handler(data);
 			}
 		});
-	};
+	}
+
+	removeCC(cc, handler) {
+		return this.off(CONTROLLER_EVENT, handler);
+	}
 
 	// EZ binding for key presses, bind these two handlers to key on/off. Can only be unbound with unbindALL()
 	keyToggle(handlerOn, handlerOff) {
