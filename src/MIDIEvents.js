@@ -77,24 +77,10 @@ export default class MIDIEvents extends Events {
 		}
 		// if there is no event name, then we don't support that event yet so do nothing.
 		if (eventName !== null) {
-			this.executeEventHandlers(eventName, data)
+			this.trigger(eventName, data)
 		}
 	};
 
-	// loop through all the bound events and execute with the newly processed data.
-	executeEventHandlers(event, data) {
-		if (this.listeners[event]) {
-			for (let i = this.listeners[event].length - 1; i >= 0; i--) {
-				if (this.listeners[event] !== undefined) {
-					if (typeof this.listeners[event][i] === "function" && this.listeners[event][i]) {
-						this.listeners[event][i](data);
-					} else {
-						throw "Event handler is not a function.";
-					}
-				}
-			}
-		}
-	};
 
 	// EZ binding for Control Change data, just pass in the CC number and handler. Can only be unbound with unbindALL()
 	onCC(cc, handler) {

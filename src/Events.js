@@ -40,4 +40,18 @@ export default class Events {
 		}
 		return false;
 	}
+
+	trigger(event, data) {
+		if (this.listeners[event]) {
+			for (let i = this.listeners[event].length - 1; i >= 0; i--) {
+				if (this.listeners[event] !== undefined) {
+					if (typeof this.listeners[event][i] === "function" && this.listeners[event][i]) {
+						this.listeners[event][i](data);
+					} else {
+						throw "Event handler is not a function.";
+					}
+				}
+			}
+		}
+	}
 }
