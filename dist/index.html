@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="mizzy.js" type="application/javascript"></script>
+    <script>
+	    var m = new Mizzy();
+	    m.initialize().then(() => {
+		    m.bindToAllInputs();
+		    m.bindToAllOutputs();
+		    m.bindKeyboard();
+		    m.keyToggle((e) => console.log("ON",e.note, e.frequency),(e) => console.log("OFF",e.note, e.frequency))
+		    m.onCC(1, (e) => console.log("CC", e.value))
+	    })
+	    window.addEventListener("mousemove", (e)=> {
+		    var x = Math.round((e.pageX / window.innerWidth) * 127);
+		    var y = Math.round((e.pageY / window.innerHeight) * 127);
+		    var xmessage = Mizzy.Generate.CCEvent(1, x);
+		    m.sendMidiMessage(xmessage);
+		    var ymessage = Mizzy.Generate.CCEvent(2, y);
+		    m.sendMidiMessage(ymessage);
+	    });
+    </script>
+</head>
+<body>
+
+</body>
+</html>
