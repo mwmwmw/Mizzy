@@ -1,6 +1,7 @@
 import MIDIEvents from "./MIDIEvents";
 import {ENHARMONIC_KEYS, NOTE_ON_EVENT, NOTE_OFF_EVENT, CONTROLLER_EVENT, PITCHWHEEL_EVENT} from "./Constants";
 import Generate from "./Generate";
+import MidiClock from "./Clock/MidiClock";
 
 
 export default class Mizzy extends MIDIEvents {
@@ -31,6 +32,8 @@ export default class Mizzy extends MIDIEvents {
 		this.boundInputs = [];
 		this.boundOutputs = [];
 
+		this.clock = new MidiClock(this);
+
 		this.key = ENHARMONIC_KEYS[0]; // C-Major
 
 		if (!window.MIDIMessageEvent) {
@@ -39,7 +42,6 @@ export default class Mizzy extends MIDIEvents {
 				return Object.assign(this, params);
 			}
 		}
-
 	}
 
 	initialize() {

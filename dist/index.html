@@ -25,6 +25,21 @@
 		    	m.unbindAll();
             }, 10000);
 	    });
+
+	    m.clock.addNote(0, Mizzy.Generate.NoteEvent(Mizzy.NOTE_ON, 60, 127));
+		m.clock.addNote(1, Mizzy.Generate.NoteEvent(Mizzy.NOTE_OFF, 60, 127));
+
+		m.clock.addNote(4, Mizzy.Generate.NoteEvent(Mizzy.NOTE_ON, 60, 127));
+		m.clock.addNote(5, Mizzy.Generate.NoteEvent(Mizzy.NOTE_OFF, 60, 127));
+
+		m.clock.addNote(8, Mizzy.Generate.NoteEvent(Mizzy.NOTE_ON, 60, 127));
+		m.clock.addNote(9, Mizzy.Generate.NoteEvent(Mizzy.NOTE_OFF, 60, 127));
+
+		m.clock.addNote(12, Mizzy.Generate.NoteEvent(Mizzy.NOTE_ON, 60, 127));
+		m.clock.addNote(13, Mizzy.Generate.NoteEvent(Mizzy.NOTE_OFF, 60, 127));
+
+	    m.clock.play();
+
 	    window.addEventListener("mousemove", (e)=> {
 		    var x = Math.round((e.pageX / window.innerWidth) * 127);
 		    var y = Math.round((e.pageY / window.innerHeight) * 127);
