@@ -24,7 +24,8 @@ export default class Clock extends Events{
 	}
 
 	reset () {
-
+		this.index = 0;
+		this.loopIndex = 0;
 	}
 
 	play (sync = this.context.currentTime + 0.005, index = 0, loopIndex = 0) {
@@ -32,10 +33,12 @@ export default class Clock extends Events{
 		this.index = index;
 		this.loopIndex = loopIndex;
 		this.playing = true;
+		this.trigger("play", sync);
 		this.schedule();
 	}
 
 	stop() {
+		this.trigger("stop");
 		this.playing = false;
 	}
 

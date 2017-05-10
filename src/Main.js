@@ -1,13 +1,17 @@
 import MIDIEvents from "./MIDIEvents";
 import {ENHARMONIC_KEYS, NOTE_ON_EVENT, NOTE_OFF_EVENT, CONTROLLER_EVENT, PITCHWHEEL_EVENT} from "./Constants";
 import Generate from "./Generate";
-import MidiClock from "./Clock/MidiClock";
+import Clock from "./Clock/Clock";
 
 
 export default class Mizzy extends MIDIEvents {
 
 	static get Generate () {
 		return Generate;
+	}
+
+	static get Clock () {
+		return Clock;
 	}
 
 	static get NOTE_ON () {
@@ -32,7 +36,7 @@ export default class Mizzy extends MIDIEvents {
 		this.boundInputs = [];
 		this.boundOutputs = [];
 
-		this.clock = new MidiClock(this);
+		this.clock = new Clock();
 
 		this.key = ENHARMONIC_KEYS[0]; // C-Major
 
@@ -151,6 +155,12 @@ export default class Mizzy extends MIDIEvents {
 		});
 		if (this.loopback) {
 			this.onMIDIMessage(message, this.key);
+		}
+	}
+
+	panic () {
+		for(let i = 0; i < 127; i++) {
+			this.sendMidiMessage(Generate.MidiEvent(Mizzy.Generate.NoteOff(i, 127), this.key));
 		}
 	}
 }
