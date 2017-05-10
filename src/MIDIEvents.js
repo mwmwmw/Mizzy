@@ -13,7 +13,15 @@ import {
 	NOTE_OFF_EVENT,
 	NOTE_ON_EVENT,
 	PITCHWHEEL_EVENT,
-	PROGRAM_CHANGE_EVENT
+	PROGRAM_CHANGE_EVENT,
+	MIDI_AFTERTOUCH,
+	MIDI_CHANNEL_PRESSURE,
+	MIDI_CONTROL_CHANGE,
+	MIDI_MESSAGE_EVENT,
+	MIDI_NOTE_OFF,
+	MIDI_NOTE_ON,
+	MIDI_PITCHBEND,
+	MIDI_PROGRAM_CHANGE
 } from "./Constants";
 
 const KEY_CODE_MAP = {
@@ -47,12 +55,12 @@ export default class MIDIEvents extends Events {
 	onMIDIMessage(message, key = ENHARMONIC_KEYS[0]) {
 		let eventName = null, data = null;
 		switch (message.data[0]) {
-			case 128:
+			case MIDI_NOTE_OFF:
 				eventName = NOTE_OFF_EVENT;
 				delete this.keysPressed[message.data[1]];
 				data = DataProcess.NoteEvent(message, key);
 				break;
-			case 144:
+			case MIDI_NOTE_ON:
 				// handle 0 velocity as a note off event
 				if (message.data[2] > 0) {
 					eventName = NOTE_ON_EVENT;
@@ -66,19 +74,19 @@ export default class MIDIEvents extends Events {
 					delete this.keysPressed[message.data[1]];
 				}
 				break;
-			case 176:
+			case MIDI_CONTROL_CHANGE:
 				eventName = CONTROLLER_EVENT;
 				data = DataProcess.CCEvent(message);
 				break;
-			case 224:
+			case MIDI_PITCHBEND:
 				eventName = PITCHWHEEL_EVENT;
 				data = DataProcess.PitchWheelEvent(message);
 				break;
-			case 208:
+			case MIDI_AFTERTOUCH:
 				eventName = AFTERTOUCH_EVENT;
 				data = DataProcess.MidiControlEvent(message, eventName);
 				break;
-			case 192:
+			case MIDI_PROGRAM_CHANGE:
 				eventName = PROGRAM_CHANGE_EVENT;
 				data = DataProcess.MidiControlEvent(message, eventName);
 				break;
