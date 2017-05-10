@@ -194,8 +194,8 @@ var NOTE_ON_EVENT = "NoteOn";
 var NOTE_OFF_EVENT = "NoteOff";
 var PITCHWHEEL_EVENT = "PitchWheel";
 var CONTROLLER_EVENT = "Controller";
-var PROGRAM_CHANGE_EVENT = "ProgramChange";
-var AFTERTOUCH_EVENT = "Aftertouch";
+var PROGRAM_CHANGE_EVENT$1 = "ProgramChange";
+var AFTERTOUCH_EVENT$1 = "Aftertouch";
 
 var KEYBOARD_EVENT_KEY_DOWN = "keydown";
 var KEYBOARD_EVENT_KEY_UP = "keyup";
@@ -417,6 +417,33 @@ var Generate = function () {
 			return new Uint8Array([MIDI_PITCHBEND, msb, lsb]);
 		}
 	}, {
+		key: "MidiEvent",
+		value: function MidiEvent(data, key) {
+
+			var message = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { "data": data }) || { "data": data };
+
+			switch (data[0]) {
+				case MIDI_NOTE_ON:
+					return DataProcess.NoteEvent(message, key);
+					break;
+				case MIDI_NOTE_OFF:
+					return DataProcess.NoteEvent(message, key);
+					break;
+				case MIDI_CONTROL_CHANGE:
+					return DataProcess.CCEvent(message);
+					break;
+				case MIDI_PITCHBEND:
+					return DataProcess.PitchWheelEvent(message);
+					break;
+				case MIDI_AFTERTOUCH:
+					return DataProcess.MidiControlEvent(message, AFTERTOUCH_EVENT);
+					break;
+				case MIDI_PROGRAM_CHANGE:
+					return DataProcess.MidiControlEvent(message, PROGRAM_CHANGE_EVENT);
+					break;
+			}
+		}
+	}, {
 		key: "NoteEvent",
 		value: function NoteEvent(messageType, value) {
 			var velocity = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 127;
@@ -498,12 +525,12 @@ var MIDIEvents = function (_Events) {
 			var eventName = null,
 			    data = null;
 			switch (message.data[0]) {
-				case 128:
+				case MIDI_NOTE_OFF:
 					eventName = NOTE_OFF_EVENT;
 					delete this.keysPressed[message.data[1]];
 					data = DataProcess.NoteEvent(message, key);
 					break;
-				case 144:
+				case MIDI_NOTE_ON:
 					// handle 0 velocity as a note off event
 					if (message.data[2] > 0) {
 						eventName = NOTE_ON_EVENT;
@@ -517,20 +544,20 @@ var MIDIEvents = function (_Events) {
 						delete this.keysPressed[message.data[1]];
 					}
 					break;
-				case 176:
+				case MIDI_CONTROL_CHANGE:
 					eventName = CONTROLLER_EVENT;
 					data = DataProcess.CCEvent(message);
 					break;
-				case 224:
+				case MIDI_PITCHBEND:
 					eventName = PITCHWHEEL_EVENT;
 					data = DataProcess.PitchWheelEvent(message);
 					break;
-				case 208:
-					eventName = AFTERTOUCH_EVENT;
+				case MIDI_AFTERTOUCH:
+					eventName = AFTERTOUCH_EVENT$1;
 					data = DataProcess.MidiControlEvent(message, eventName);
 					break;
-				case 192:
-					eventName = PROGRAM_CHANGE_EVENT;
+				case MIDI_PROGRAM_CHANGE:
+					eventName = PROGRAM_CHANGE_EVENT$1;
 					data = DataProcess.MidiControlEvent(message, eventName);
 					break;
 			}
@@ -781,12 +808,115 @@ var MIDIEvents = function (_Events) {
 	return MIDIEvents;
 }(Events);
 
+var TICK_INCREMENT = 0.25;
+var DEFAULT_LOOP_LENGTH = 16;
+var DEFAULT_TEMPO = 120;
+var TICK_LENGTH = 0.2;
+
+var Clock = function (_Events) {
+	inherits(Clock, _Events);
+
+	function Clock(context) {
+		classCallCheck(this, Clock);
+
+		var _this = possibleConstructorReturn(this, (Clock.__proto__ || Object.getPrototypeOf(Clock)).call(this));
+
+		_this.context = context || new AudioContext();
+
+		_this.BPM = DEFAULT_TEMPO;
+		_this.tickSchedule;
+		_this.tick = 0;
+		_this.playing = false;
+		_this.loopIndex = 0;
+		_this.startClock = 0;
+		_this.index = 0;
+		_this.looplength = DEFAULT_LOOP_LENGTH;
+		_this.direction = 1;
+		_this.lastTick = 0;
+		return _this;
+	}
+
+	createClass(Clock, [{
+		key: "reset",
+		value: function reset() {
+			this.index = 0;
+			this.loopIndex = 0;
+		}
+	}, {
+		key: "play",
+		value: function play() {
+			var sync = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.context.currentTime + 0.005;
+			var index = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+			var loopIndex = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+
+			this.startClock = sync;
+			this.index = index;
+			this.loopIndex = loopIndex;
+			this.playing = true;
+			this.trigger("play", sync);
+			this.schedule();
+		}
+	}, {
+		key: "stop",
+		value: function stop() {
+			this.trigger("stop");
+			this.playing = false;
+		}
+	}, {
+		key: "schedule",
+		value: function schedule() {
+			var _this2 = this;
+
+			if (this.playing) {
+				var playHead = this.context.currentTime - this.startClock;
+				while (this.tick < playHead + TICK_LENGTH) {
+					var localPlayHead = this.tick + this.startClock;
+					this.process(this.index, this.loopIndex, this.tick, playHead);
+					this.next();
+				}
+				this.tickSchedule = setTimeout(function () {
+					return _this2.schedule();
+				}, 0);
+			}
+		}
+	}, {
+		key: "process",
+		value: function process(index, loopIndex, localTime, globalTime) {
+			var tick = {
+				index: index, loopIndex: loopIndex, globalTime: globalTime
+			};
+			this.trigger("tick", tick);
+		}
+	}, {
+		key: "next",
+		value: function next() {
+			var beat = 60 / this.BPM;
+			this.index++;
+			this.loopIndex += this.direction;
+
+			if (this.loopIndex > this.looplength - 1) {
+				this.loopIndex = 0;
+			} else if (this.loopIndex < 0) {
+				this.loopIndex = this.looplength - 1;
+			}
+
+			this.tick += TICK_INCREMENT * beat;
+		}
+	}]);
+	return Clock;
+}(Events);
+
 var Mizzy = function (_MIDIEvents) {
 	inherits(Mizzy, _MIDIEvents);
 	createClass(Mizzy, null, [{
 		key: "Generate",
 		get: function get$$1() {
 			return Generate;
+		}
+	}, {
+		key: "Clock",
+		get: function get$$1() {
+			return Clock;
 		}
 	}, {
 		key: "NOTE_ON",
@@ -822,6 +952,8 @@ var Mizzy = function (_MIDIEvents) {
 		_this.boundInputs = [];
 		_this.boundOutputs = [];
 
+		_this.clock = new Clock();
+
 		_this.key = ENHARMONIC_KEYS[0]; // C-Major
 
 		if (!window.MIDIMessageEvent) {
@@ -830,7 +962,6 @@ var Mizzy = function (_MIDIEvents) {
 				return Object.assign(_this, params);
 			};
 		}
-
 		return _this;
 	}
 
@@ -944,6 +1075,13 @@ var Mizzy = function (_MIDIEvents) {
 			});
 			if (this.loopback) {
 				this.onMIDIMessage(message, this.key);
+			}
+		}
+	}, {
+		key: "panic",
+		value: function panic() {
+			for (var i = 0; i < 127; i++) {
+				this.sendMidiMessage(Generate.MidiEvent(Mizzy.Generate.NoteOff(i, 127), this.key));
 			}
 		}
 	}, {
