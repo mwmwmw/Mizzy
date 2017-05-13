@@ -13,7 +13,7 @@ You can see a very simple setup [here](http://codepen.io/mwmwmw/pen/256209a05836
 * Loopback integration tests
 * Find some way to do MIDI device testing / integration tests
 
-* *0.0.3* - Add channel support. Not exactly sure how to route to the different channels yet, but I'm looking into it.
+-* *0.0.3* - Add channel support. Not exactly sure how to route to the different channels yet, but I'm looking into it.-
 * *0.0.4* - Make MIDI processing opt-in and chainable.
 
 ----------------------------------
@@ -91,13 +91,15 @@ In addition to the standard MIDIMessageEvent parameters. Mizzy adds the followin
 * `value`: the MIDI note value (0-127)
 * `velocity`: The velocity value of the note (0-127) _*note: as per the MIDI spec, a velocity of 0 is treated as a note off event_
 * `frequency`: The frequency of the note (A440 tuning)
+* `channel` : The channel this message was sent from
 
 #### CC Events
 
 * `cc`: the control change number that generated the event
 * `value`: the control change value
 * `ratio`: a ratio of the value from min to max (0 = 0, 127 = 1)
-* `polarRatio`: a polar ratio where 0 = -1 and 127 = 1. Useful for things like binding controls to panning. 
+* `polarRatio`: a polar ratio where 0 = -1 and 127 = 1. Useful for things like binding controls to panning.
+* `channel` : The channel this message was sent from
 
 #### PitchWheel Events
 
@@ -107,6 +109,8 @@ Pitchwheel events are almost identical to CC events except they are higher in re
 * `value`: the 14-bit pitchwheel value (0 - 16384)
 * `ratio`: a ratio of the value from min to max (0 = 0, 16384 = 1)
 * `polarRatio`: a polar ratio where 0 = -1 and 16384 = 1. Useful for things like binding controls to pitch ratios.
+* `channel` : The channel this message was sent from
+
 
 ----------------------------------------------
 
@@ -120,18 +124,22 @@ The easiest one is `keyToggle` which will run the functions you pass in for each
 m.keyToggle(/* key pressed function*/, /* key released function */);
 ```
 
-###`onCC(ccNumber, handler)`
+###`onCC(ccNumber, handler, _channel[optional]_)`
 
 To respond to a control change message, pass in the CC number and a handler
 
 `m.onCC(1, /* handle mod wheel */);`
 
-### `onNoteNumber(number, handler)`
+### `onNoteNumber(number, handler, _channel[optional]_)`
 
 Respond to a single note, eg 
 
 `m.onNoteNumber(60, handler)`  wait for the user to press middle c 
 `m.offNoteNumber(60, handler)` fires when the user releases middle c 
+
+### `keyToggleRange(minNoteNumber, maxNoteNumber, onHandler, offHandler, _channel[optional]_)`
+
+By far the most powerful. You can split up the ranges you want to bind keys to as well as listen to specific channels.
 
 ----------------------------------------------
 
@@ -143,7 +151,7 @@ Sending events is almost as easy, but requires that you generate a MIDIEventMess
       window.addEventListener("mousemove", (e)=> {
         var mod = Math.round((e.pageX / window.innerWidth) * 127); // get the mouse x as a value between 0 - 127
         var ModwheelMessage = Mizzy.Generate.CCEvent(1, mod);
-        m.sendMidiMessage(ModWheelMessage);
+        m.sendMidiMessage(ModWheelMessage, _channel[optional]_);
       });
 ```
 
@@ -189,11 +197,11 @@ unbindAll does just what you'd expect. It unbinds all of your event handlers. It
 
 ----------------------------------------------
 
-## Fake Midi Keyboard with `m.bindKeyboard()`
+## Fake Midi Keyboard with `m.bindKeyboard(_channel[optional]_)`
 
 Mizzy has a helper function for binding your computer keyboard to an output and have it generate MIDI events. 
 
-`m.bindKeyboard()`
+`m.bindKeyboard(_channel[optional]_)`
 
 This will create a "tracker style" midi keyboard with a layout like 
 
