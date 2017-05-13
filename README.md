@@ -123,22 +123,26 @@ The easiest one is `keyToggle` which will run the functions you pass in for each
 m.keyToggle(/* key pressed function*/, /* key released function */);
 ```
 
-###`onCC(ccNumber, handler, *channel[optional]*)`
+### `onCC(ccNumber, handler, channel[optional])`
 
 To respond to a control change message, pass in the CC number and a handler
 
 `m.onCC(1, /* handle mod wheel */);`
 
-### `onNoteNumber(number, handler, *channel[optional]*)`
+### `onNoteNumber(number, handler, channel[optional])`
 
 Respond to a single note, eg 
 
 `m.onNoteNumber(60, handler)`  wait for the user to press middle c 
 `m.offNoteNumber(60, handler)` fires when the user releases middle c 
 
-### `keyToggleRange(minNoteNumber, maxNoteNumber, onHandler, offHandler, *channel[optional]*)`
+### `keyToggleRange(minNoteNumber, maxNoteNumber, onHandler, offHandler, channel[optional])`
 
 By far the most powerful. You can split up the ranges you want to bind keys to as well as listen to specific channels.
+
+`
+    m.keyToggleRange(60,72, onHandle, offHandle, 10); // toggle note on / off messages between note 60 and 72 on channel 10.
+`
 
 ----------------------------------------------
 
@@ -150,7 +154,7 @@ Sending events is almost as easy, but requires that you generate a MIDIEventMess
       window.addEventListener("mousemove", (e)=> {
         var mod = Math.round((e.pageX / window.innerWidth) * 127); // get the mouse x as a value between 0 - 127
         var ModwheelMessage = Mizzy.Generate.CCEvent(1, mod);
-        m.sendMidiMessage(ModWheelMessage, *channel[optional]*);
+        m.sendMidiMessage(ModWheelMessage, channel[optional]);
       });
 ```
 
@@ -196,11 +200,11 @@ unbindAll does just what you'd expect. It unbinds all of your event handlers. It
 
 ----------------------------------------------
 
-## Fake Midi Keyboard with `m.bindKeyboard(*channel[optional]*)`
+## Fake Midi Keyboard with `m.bindKeyboard(channel[optional])`
 
 Mizzy has a helper function for binding your computer keyboard to an output and have it generate MIDI events. 
 
-`m.bindKeyboard(*channel[optional]*)`
+`m.bindKeyboard(channel[optional])`
 
 This will create a "tracker style" midi keyboard with a layout like 
 
