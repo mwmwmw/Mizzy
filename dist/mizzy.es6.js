@@ -83,6 +83,10 @@ class Convert {
 		return -(halfmax - value) / halfmax;
 	}
 
+	static MidiChannel (value) {
+		return (value & 0x0F) + 1;
+	}
+
 }
 
 const MIDI_NOTE_ON = 0x90;
@@ -162,7 +166,8 @@ class DataProcess {
 			"inKey": DataProcess.isNoteInKey(notes, key),
 			"value": value,
 			"velocity": message.data[2],
-			"frequency": Convert.MIDINoteToFrequency(value)
+			"frequency": Convert.MIDINoteToFrequency(value),
+			"channel" : Convert.MidiChannel(message.data[0])
 		};
 		return Object.assign(message, data);
 	};
@@ -174,6 +179,7 @@ class DataProcess {
 			"value": message.data[2],
 			"ratio": Convert.MidiValueToRatio(message.data[2]),
 			"polarRatio":Convert.MidiValueToPolarRatio(message.data[2]),
+			"channel" : Convert.MidiChannel(message.data[0])
 		});
 	}
 
@@ -183,6 +189,7 @@ class DataProcess {
 			"cc": controlName,
 			"value": message.data[1],
 			"ratio": Convert.MidiValueToRatio(message.data[2]),
+			"channel" : Convert.MidiChannel(message.data[0])
 		});
 	}
 
@@ -194,6 +201,7 @@ class DataProcess {
 			"value": raw,
 			"polar": Convert.PitchWheelToPolar(raw),
 			"polarRatio": Convert.PitchWheelToPolarRatio(raw),
+			"channel" : Convert.MidiChannel(message.data[0])
 		});
 	}
 
@@ -341,7 +349,7 @@ class MIDIEvents extends Events {
 	 */
 	onMIDIMessage(message, key = ENHARMONIC_KEYS[0]) {
 		let eventName = null, data = null;
-		switch (message.data[0]) {
+		switch (message.data[0] & 0xF0) {
 			case 128:
 				eventName = NOTE_OFF_EVENT;
 				delete this.keysPressed[message.data[1]];
@@ -709,7 +717,8 @@ class Mizzy extends MIDIEvents {
 		this.midiAccess = midiAccessObj;
 	}
 
-	sendMidiMessage(message) {
+	sendMidiMessage(message, channel = 1) {
+		message.data[0] = message.data[0] | parseInt(channel-1, 16);
 		this.boundOutputs.forEach((output) => {
 			output.send(message.data, message.timeStamp);
 		});

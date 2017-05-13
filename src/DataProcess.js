@@ -12,7 +12,8 @@ export default class DataProcess {
 			"inKey": DataProcess.isNoteInKey(notes, key),
 			"value": value,
 			"velocity": message.data[2],
-			"frequency": Convert.MIDINoteToFrequency(value)
+			"frequency": Convert.MIDINoteToFrequency(value),
+			"channel" : Convert.MidiChannel(message.data[0])
 		};
 		return Object.assign(message, data);
 	};
@@ -24,6 +25,7 @@ export default class DataProcess {
 			"value": message.data[2],
 			"ratio": Convert.MidiValueToRatio(message.data[2]),
 			"polarRatio":Convert.MidiValueToPolarRatio(message.data[2]),
+			"channel" : Convert.MidiChannel(message.data[0])
 		});
 	}
 
@@ -33,6 +35,7 @@ export default class DataProcess {
 			"cc": controlName,
 			"value": message.data[1],
 			"ratio": Convert.MidiValueToRatio(message.data[2]),
+			"channel" : Convert.MidiChannel(message.data[0])
 		});
 	}
 
@@ -44,6 +47,7 @@ export default class DataProcess {
 			"value": raw,
 			"polar": Convert.PitchWheelToPolar(raw),
 			"polarRatio": Convert.PitchWheelToPolarRatio(raw),
+			"channel" : Convert.MidiChannel(message.data[0])
 		});
 	}
 

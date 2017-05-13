@@ -176,6 +176,11 @@ var Convert = function () {
 			var halfmax = MIDI_MAX_VALUE * 0.5;
 			return -(halfmax - value) / halfmax;
 		}
+	}, {
+		key: "MidiChannel",
+		value: function MidiChannel(value) {
+			return (value & 0x0F) + 1;
+		}
 	}]);
 	return Convert;
 }();
@@ -267,7 +272,8 @@ var DataProcess = function () {
 				"inKey": DataProcess.isNoteInKey(notes, key),
 				"value": value,
 				"velocity": message.data[2],
-				"frequency": Convert.MIDINoteToFrequency(value)
+				"frequency": Convert.MIDINoteToFrequency(value),
+				"channel": Convert.MidiChannel(message.data[0])
 			};
 			return Object.assign(message, data);
 		}
@@ -281,7 +287,8 @@ var DataProcess = function () {
 				"cc": ccNameOverride || message.data[1],
 				"value": message.data[2],
 				"ratio": Convert.MidiValueToRatio(message.data[2]),
-				"polarRatio": Convert.MidiValueToPolarRatio(message.data[2])
+				"polarRatio": Convert.MidiValueToPolarRatio(message.data[2]),
+				"channel": Convert.MidiChannel(message.data[0])
 			});
 		}
 
@@ -293,7 +300,8 @@ var DataProcess = function () {
 			return Object.assign(message, {
 				"cc": controlName,
 				"value": message.data[1],
-				"ratio": Convert.MidiValueToRatio(message.data[2])
+				"ratio": Convert.MidiValueToRatio(message.data[2]),
+				"channel": Convert.MidiChannel(message.data[0])
 			});
 		}
 
@@ -307,7 +315,8 @@ var DataProcess = function () {
 				"cc": "pitchwheel",
 				"value": raw,
 				"polar": Convert.PitchWheelToPolar(raw),
-				"polarRatio": Convert.PitchWheelToPolarRatio(raw)
+				"polarRatio": Convert.PitchWheelToPolarRatio(raw),
+				"channel": Convert.MidiChannel(message.data[0])
 			});
 		}
 
@@ -479,7 +488,7 @@ var MIDIEvents = function (_Events) {
 		var _this = possibleConstructorReturn(this, (MIDIEvents.__proto__ || Object.getPrototypeOf(MIDIEvents)).call(this));
 
 		_this.keysPressed = [];
-		_this.keyboadKeyPressed = [];
+		_this.keyboardKeyPressed = [];
 		return _this;
 	}
 
@@ -497,7 +506,7 @@ var MIDIEvents = function (_Events) {
 
 			var eventName = null,
 			    data = null;
-			switch (message.data[0]) {
+			switch (message.data[0] & 0xF0) {
 				case 128:
 					eventName = NOTE_OFF_EVENT;
 					delete this.keysPressed[message.data[1]];
@@ -550,11 +559,21 @@ var MIDIEvents = function (_Events) {
    * @returns {Function}
    */
 		value: function onCC(cc, handler) {
-			return this.on(CONTROLLER_EVENT, function (data) {
-				if (data.cc == cc) {
-					handler(data);
-				}
-			});
+			var channel = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+
+			if (channel == null) {
+				return this.on(CONTROLLER_EVENT, function (data) {
+					if (data.cc == cc) {
+						handler(data);
+					}
+				});
+			} else {
+				return this.on(CONTROLLER_EVENT, function (data) {
+					if (data.cc == cc && data.channel == channel) {
+						handler(data);
+					}
+				});
+			}
 		}
 
 		/**
@@ -616,11 +635,21 @@ var MIDIEvents = function (_Events) {
 	}, {
 		key: "pressNoteNumber",
 		value: function pressNoteNumber(number, handler) {
-			return this.on(NOTE_ON_EVENT, function (data) {
-				if (data.value == number) {
-					handler(data);
-				}
-			});
+			var channel = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+
+			if (channel == null) {
+				return this.on(NOTE_ON_EVENT, function (data) {
+					if (data.value == number) {
+						handler(data);
+					}
+				});
+			} else {
+				return this.on(NOTE_ON_EVENT, function (data) {
+					if (data.value == number && data.channel == channel) {
+						handler(data);
+					}
+				});
+			}
 		}
 	}, {
 		key: "removePressNoteNumber",
@@ -632,11 +661,21 @@ var MIDIEvents = function (_Events) {
 	}, {
 		key: "releaseNoteNumber",
 		value: function releaseNoteNumber(number, handler) {
-			return this.on(NOTE_OFF_EVENT, function (data) {
-				if (data.value == number) {
-					handler(data);
-				}
-			});
+			var channel = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+
+			if (channel == null) {
+				return this.on(NOTE_OFF_EVENT, function (data) {
+					if (data.value == number) {
+						handler(data);
+					}
+				});
+			} else {
+				return this.on(NOTE_OFF_EVENT, function (data) {
+					if (data.value == number && data.channel == channel) {
+						handler(data);
+					}
+				});
+			}
 		}
 	}, {
 		key: "removeReleaseNoteNumber",
@@ -656,22 +695,26 @@ var MIDIEvents = function (_Events) {
 	}, {
 		key: "keyToggleRange",
 		value: function keyToggleRange(min, max, onHandler, offHandler) {
+			var channel = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : null;
+
 			return {
-				press: this.onSplit(min, max, onHandler),
-				release: this.offSplit(min, max, offHandler)
+				press: this.onSplit(min, max, onHandler, channel),
+				release: this.offSplit(min, max, offHandler, channel)
 			};
 		}
 	}, {
 		key: "onSplit",
 		value: function onSplit(min, max, onHandler) {
+			var channel = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
+
 			var on = [];
 			if (max > min) {
 				for (var i = min; i <= max; i++) {
-					on.push(this.pressNoteNumber(i, onHandler));
+					on.push(this.pressNoteNumber(i, onHandler, channel));
 				}
 			} else {
 				for (var _i = max; _i >= min; _i--) {
-					on.push(this.pressNoteNumber(_i, onHandler));
+					on.push(this.pressNoteNumber(_i, onHandler, channel));
 				}
 			}
 			return on;
@@ -679,14 +722,16 @@ var MIDIEvents = function (_Events) {
 	}, {
 		key: "offSplit",
 		value: function offSplit(min, max, offHandler) {
+			var channel = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
+
 			var off = [];
 			if (max > min) {
 				for (var i = min; i <= max; i++) {
-					off.push(this.releaseNoteNumber(i, offHandler));
+					off.push(this.releaseNoteNumber(i, offHandler, channel));
 				}
 			} else {
 				for (var _i2 = max; _i2 >= min; _i2--) {
-					off.push(this.releaseNoteNumber(_i2, offHandler));
+					off.push(this.releaseNoteNumber(_i2, offHandler, channel));
 				}
 			}
 			return off;
@@ -729,11 +774,13 @@ var MIDIEvents = function (_Events) {
 		value: function bindKeyboard() {
 			var _this3 = this;
 
+			var channel = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+
 			window.addEventListener(KEYBOARD_EVENT_KEY_DOWN, function (e) {
-				return _this3.keyboardKeyDown(e);
+				return _this3.keyboardKeyDown(e, channel);
 			});
 			window.addEventListener(KEYBOARD_EVENT_KEY_UP, function (e) {
-				return _this3.keyboardKeyUp(e);
+				return _this3.keyboardKeyUp(e, channel);
 			});
 		}
 	}, {
@@ -741,22 +788,26 @@ var MIDIEvents = function (_Events) {
 		value: function unBindKeyboard() {
 			var _this4 = this;
 
+			var channel = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+
 			window.removeEventListener(KEYBOARD_EVENT_KEY_DOWN, function (e) {
-				return _this4.keyboardKeyDown(e);
+				return _this4.keyboardKeyDown(e, channel);
 			});
 			window.removeEventListener(KEYBOARD_EVENT_KEY_UP, function (e) {
-				return _this4.keyboardKeyUp(e);
+				return _this4.keyboardKeyUp(e, channel);
 			});
 		}
 	}, {
 		key: "keyboardKeyDown",
 		value: function keyboardKeyDown(message) {
+			var channel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+
 			if (KEY_CODE_MAP[message.keyCode] != undefined) {
-				if (this.keyboadKeyPressed[message.keyCode] != true) {
-					this.keyboadKeyPressed[message.keyCode] = true;
+				if (this.keyboardKeyPressed[message.keyCode] != true) {
+					this.keyboardKeyPressed[message.keyCode] = true;
 					var newMessage = Generate.NoteEvent(NOTE_ON_EVENT, KEY_CODE_MAP[message.keyCode]);
 					if (newMessage !== null) {
-						this.sendMidiMessage(newMessage);
+						this.sendMidiMessage(newMessage, channel);
 					}
 				}
 			}
@@ -764,19 +815,33 @@ var MIDIEvents = function (_Events) {
 	}, {
 		key: "keyboardKeyUp",
 		value: function keyboardKeyUp(message) {
+			var channel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+
 			if (KEY_CODE_MAP[message.keyCode] != undefined) {
-				if (this.keyboadKeyPressed[message.keyCode] == true) {
-					delete this.keyboadKeyPressed[message.keyCode];
+				if (this.keyboardKeyPressed[message.keyCode] == true) {
+					delete this.keyboardKeyPressed[message.keyCode];
 					var newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, KEY_CODE_MAP[message.keyCode]);
 					if (newMessage !== null) {
-						this.sendMidiMessage(newMessage);
+						this.sendMidiMessage(newMessage, channel);
 					}
 				}
 			}
 		}
 	}, {
 		key: "sendMidiMessage",
-		value: function sendMidiMessage(message) {}
+		value: function sendMidiMessage(message) {
+			var channel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+
+			if (channel != null) {
+				message.data[0] = message.data[0] | parseInt(channel - 1, 16);
+			}
+			this.boundOutputs.forEach(function (output) {
+				output.send(message.data, message.timeStamp);
+			});
+			if (this.loopback) {
+				this.onMIDIMessage(message, this.key);
+			}
+		}
 	}]);
 	return MIDIEvents;
 }(Events);
@@ -935,16 +1000,6 @@ var Mizzy = function (_MIDIEvents) {
 		key: "onMIDISuccess",
 		value: function onMIDISuccess(midiAccessObj) {
 			this.midiAccess = midiAccessObj;
-		}
-	}, {
-		key: "sendMidiMessage",
-		value: function sendMidiMessage(message) {
-			this.boundOutputs.forEach(function (output) {
-				output.send(message.data, message.timeStamp);
-			});
-			if (this.loopback) {
-				this.onMIDIMessage(message, this.key);
-			}
 		}
 	}, {
 		key: "keys",

@@ -9,29 +9,22 @@
 	    m.initialize().then(() => {
 		    m.bindToAllInputs();
 		    m.bindToAllOutputs();
-		    m.bindKeyboard();
+		    m.bindKeyboard(8);
 
-		    var toggles = m.keyToggle((e) => console.log("ON",e.note, e.frequency),(e) => console.log("OFF",e.note, e.frequency));
+		    var toggles = m.keyToggle((e) => console.log("ON",e),(e) => console.log("OFF",e));
 
-		    var CCref = m.onCC(1, (e) => console.log("CC", e.value));
+		    var CCref = m.onCC(1, (e) => console.log("CC", e.channel));
 
-            m.onCC(1,(e) => console.log("CC-b", e.value));
+            m.onCC(2,(e) => console.log("CC-b", e.channel));
 
-		    setTimeout(() => {
-		    	m.removeKeyToggle(toggles);
-		    	m.removeCC(1,CCref);
-			}, 5000);
-		    setTimeout(()=> {
-		    	m.unbindAll();
-            }, 10000);
 	    });
 	    window.addEventListener("mousemove", (e)=> {
 		    var x = Math.round((e.pageX / window.innerWidth) * 127);
 		    var y = Math.round((e.pageY / window.innerHeight) * 127);
 		    var xmessage = Mizzy.Generate.CCEvent(1, x);
-		    m.sendMidiMessage(xmessage);
+		    m.sendMidiMessage(xmessage, 2);
 		    var ymessage = Mizzy.Generate.CCEvent(2, y);
-		    m.sendMidiMessage(ymessage);
+		    m.sendMidiMessage(ymessage, 4);
 	    });
     </script>
 </head>

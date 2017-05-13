@@ -175,6 +175,11 @@ var Convert = function () {
 			var halfmax = MIDI_MAX_VALUE * 0.5;
 			return -(halfmax - value) / halfmax;
 		}
+	}, {
+		key: "MidiChannel",
+		value: function MidiChannel(value) {
+			return (value & 0x0F) + 1;
+		}
 	}]);
 	return Convert;
 }();
@@ -266,7 +271,8 @@ var DataProcess = function () {
 				"inKey": DataProcess.isNoteInKey(notes, key),
 				"value": value,
 				"velocity": message.data[2],
-				"frequency": Convert.MIDINoteToFrequency(value)
+				"frequency": Convert.MIDINoteToFrequency(value),
+				"channel": Convert.MidiChannel(message.data[0])
 			};
 			return Object.assign(message, data);
 		}
@@ -280,7 +286,8 @@ var DataProcess = function () {
 				"cc": ccNameOverride || message.data[1],
 				"value": message.data[2],
 				"ratio": Convert.MidiValueToRatio(message.data[2]),
-				"polarRatio": Convert.MidiValueToPolarRatio(message.data[2])
+				"polarRatio": Convert.MidiValueToPolarRatio(message.data[2]),
+				"channel": Convert.MidiChannel(message.data[0])
 			});
 		}
 
@@ -292,7 +299,8 @@ var DataProcess = function () {
 			return Object.assign(message, {
 				"cc": controlName,
 				"value": message.data[1],
-				"ratio": Convert.MidiValueToRatio(message.data[2])
+				"ratio": Convert.MidiValueToRatio(message.data[2]),
+				"channel": Convert.MidiChannel(message.data[0])
 			});
 		}
 
@@ -306,7 +314,8 @@ var DataProcess = function () {
 				"cc": "pitchwheel",
 				"value": raw,
 				"polar": Convert.PitchWheelToPolar(raw),
-				"polarRatio": Convert.PitchWheelToPolarRatio(raw)
+				"polarRatio": Convert.PitchWheelToPolarRatio(raw),
+				"channel": Convert.MidiChannel(message.data[0])
 			});
 		}
 
@@ -496,7 +505,7 @@ var MIDIEvents = function (_Events) {
 
 			var eventName = null,
 			    data = null;
-			switch (message.data[0]) {
+			switch (message.data[0] & 0xF0) {
 				case 128:
 					eventName = NOTE_OFF_EVENT;
 					delete this.keysPressed[message.data[1]];
@@ -938,6 +947,9 @@ var Mizzy = function (_MIDIEvents) {
 	}, {
 		key: "sendMidiMessage",
 		value: function sendMidiMessage(message) {
+			var channel = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
+
+			message.data[0] = message.data[0] | parseInt(channel - 1, 16);
 			this.boundOutputs.forEach(function (output) {
 				output.send(message.data, message.timeStamp);
 			});
