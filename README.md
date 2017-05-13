@@ -13,7 +13,6 @@ You can see a very simple setup [here](http://codepen.io/mwmwmw/pen/256209a05836
 * Loopback integration tests
 * Find some way to do MIDI device testing / integration tests
 
--* *0.0.3* - Add channel support. Not exactly sure how to route to the different channels yet, but I'm looking into it.-
 * *0.0.4* - Make MIDI processing opt-in and chainable.
 
 ----------------------------------
@@ -124,20 +123,20 @@ The easiest one is `keyToggle` which will run the functions you pass in for each
 m.keyToggle(/* key pressed function*/, /* key released function */);
 ```
 
-###`onCC(ccNumber, handler, _channel[optional]_)`
+###`onCC(ccNumber, handler, *channel[optional]*)`
 
 To respond to a control change message, pass in the CC number and a handler
 
 `m.onCC(1, /* handle mod wheel */);`
 
-### `onNoteNumber(number, handler, _channel[optional]_)`
+### `onNoteNumber(number, handler, *channel[optional]*)`
 
 Respond to a single note, eg 
 
 `m.onNoteNumber(60, handler)`  wait for the user to press middle c 
 `m.offNoteNumber(60, handler)` fires when the user releases middle c 
 
-### `keyToggleRange(minNoteNumber, maxNoteNumber, onHandler, offHandler, _channel[optional]_)`
+### `keyToggleRange(minNoteNumber, maxNoteNumber, onHandler, offHandler, *channel[optional]*)`
 
 By far the most powerful. You can split up the ranges you want to bind keys to as well as listen to specific channels.
 
@@ -151,7 +150,7 @@ Sending events is almost as easy, but requires that you generate a MIDIEventMess
       window.addEventListener("mousemove", (e)=> {
         var mod = Math.round((e.pageX / window.innerWidth) * 127); // get the mouse x as a value between 0 - 127
         var ModwheelMessage = Mizzy.Generate.CCEvent(1, mod);
-        m.sendMidiMessage(ModWheelMessage, _channel[optional]_);
+        m.sendMidiMessage(ModWheelMessage, *channel[optional]*);
       });
 ```
 
@@ -197,11 +196,11 @@ unbindAll does just what you'd expect. It unbinds all of your event handlers. It
 
 ----------------------------------------------
 
-## Fake Midi Keyboard with `m.bindKeyboard(_channel[optional]_)`
+## Fake Midi Keyboard with `m.bindKeyboard(*channel[optional]*)`
 
 Mizzy has a helper function for binding your computer keyboard to an output and have it generate MIDI events. 
 
-`m.bindKeyboard(_channel[optional]_)`
+`m.bindKeyboard(*channel[optional]*)`
 
 This will create a "tracker style" midi keyboard with a layout like 
 
