@@ -44,7 +44,7 @@ export default class MIDIEvents extends Events {
 	constructor() {
 		super();
 		this.keysPressed = [];
-		this.keyboadKeyPressed = [];
+		this.keyboardKeyPressed = [];
 	}
 
 	/**
@@ -54,7 +54,7 @@ export default class MIDIEvents extends Events {
 	 */
 	onMIDIMessage(message, key = ENHARMONIC_KEYS[0]) {
 		let eventName = null, data = null;
-		switch (message.data[0]) {
+		switch (message.data[0] & 0xF0) {
 			case MIDI_NOTE_OFF:
 				eventName = NOTE_OFF_EVENT;
 				delete this.keysPressed[message.data[1]];
@@ -104,12 +104,20 @@ export default class MIDIEvents extends Events {
 	 * @param handler
 	 * @returns {Function}
 	 */
-	onCC(cc, handler) {
-		return this.on(CONTROLLER_EVENT, data => {
-			if (data.cc == cc) {
-				handler(data);
-			}
-		});
+	onCC(cc, handler, channel = null) {
+		if(channel == null) {
+			return this.on(CONTROLLER_EVENT, data => {
+				if (data.cc == cc) {
+					handler(data);
+				}
+			});
+		} else {
+			return this.on(CONTROLLER_EVENT, data => {
+				if (data.cc == cc && data.channel == channel) {
+					handler(data);
+				}
+			});
+		}
 	}
 
 	/**
@@ -158,23 +166,39 @@ export default class MIDIEvents extends Events {
 	 * @param handler
 	 * @returns {Function}
 	 */
-	pressNoteNumber(number, handler) {
-		return this.on(NOTE_ON_EVENT, data => {
-			if (data.value == number) {
-				handler(data);
-			}
-		});
+	pressNoteNumber(number, handler, channel = null) {
+		if(channel == null) {
+			return this.on(NOTE_ON_EVENT, data => {
+				if (data.value == number) {
+					handler(data);
+				}
+			});
+		} else {
+			return this.on(NOTE_ON_EVENT, data => {
+				if (data.value == number && data.channel == channel) {
+					handler(data);
+				}
+			});
+		}
 	};
 	removePressNoteNumber(handler) {
 		return this.off(NOTE_ON_EVENT, handler);
 	}
 	// EZ binding for key values. Can only be unbound with unbindALL()
-	releaseNoteNumber(number, handler) {
-		return this.on(NOTE_OFF_EVENT, data => {
-			if (data.value == number) {
-				handler(data);
-			}
-		});
+	releaseNoteNumber(number, handler, channel = null) {
+		if(channel == null) {
+			return this.on(NOTE_OFF_EVENT, data => {
+				if (data.value == number) {
+					handler(data);
+				}
+			});
+		} else {
+			return this.on(NOTE_OFF_EVENT, data => {
+				if (data.value == number && data.channel == channel) {
+					handler(data);
+				}
+			});
+		}
 	};
 	removeReleaseNoteNumber(handler) {
 		return this.off(NOTE_OFF_EVENT, handler);
@@ -188,36 +212,36 @@ export default class MIDIEvents extends Events {
 	 * @param offHandler
 	 * @returns {{onRange: Array, offRange: Array}}
 	 */
-	keyToggleRange(min, max, onHandler, offHandler) {
+	keyToggleRange(min, max, onHandler, offHandler, channel = null) {
 		return {
-			press: this.onSplit(min, max, onHandler),
-			release: this.offSplit(min, max, offHandler)
+			press: this.onSplit(min, max, onHandler, channel),
+			release: this.offSplit(min, max, offHandler, channel)
 		}
 	};
 
-	onSplit(min, max, onHandler) {
+	onSplit(min, max, onHandler, channel = null) {
 		let on = [];
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
-				on.push(this.pressNoteNumber(i, onHandler));
+				on.push(this.pressNoteNumber(i, onHandler, channel));
 			}
 		} else {
 			for (let i = max; i >= min; i--) {
-				on.push(this.pressNoteNumber(i, onHandler));
+				on.push(this.pressNoteNumber(i, onHandler, channel));
 			}
 		}
 		return on;
 	};
 
-	offSplit(min, max, offHandler) {
+	offSplit(min, max, offHandler, channel = null) {
 		let off = [];
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
-				off.push(this.releaseNoteNumber(i, offHandler));
+				off.push(this.releaseNoteNumber(i, offHandler, channel));
 			}
 		} else {
 			for (let i = max; i >= min; i--) {
-				off.push(this.releaseNoteNumber(i, offHandler));
+				off.push(this.releaseNoteNumber(i, offHandler, channel));
 			}
 		}
 		return off;
@@ -244,40 +268,50 @@ export default class MIDIEvents extends Events {
 	/**
 	 * Bind the computer (qwerty) keyboard to allow it to generate MIDI note on and note off messages.
 	 */
-	bindKeyboard() {
-		window.addEventListener(KEYBOARD_EVENT_KEY_DOWN, (e) => this.keyboardKeyDown(e));
-		window.addEventListener(KEYBOARD_EVENT_KEY_UP, (e) => this.keyboardKeyUp(e));
+	bindKeyboard(channel = null) {
+		window.addEventListener(KEYBOARD_EVENT_KEY_DOWN, (e) => this.keyboardKeyDown(e, channel));
+		window.addEventListener(KEYBOARD_EVENT_KEY_UP, (e) => this.keyboardKeyUp(e, channel));
 	};
 
-	unBindKeyboard() {
-		window.removeEventListener(KEYBOARD_EVENT_KEY_DOWN, (e) => this.keyboardKeyDown(e));
-		window.removeEventListener(KEYBOARD_EVENT_KEY_UP, (e) => this.keyboardKeyUp(e));
+	unBindKeyboard(channel = null) {
+		window.removeEventListener(KEYBOARD_EVENT_KEY_DOWN, (e) => this.keyboardKeyDown(e, channel));
+		window.removeEventListener(KEYBOARD_EVENT_KEY_UP, (e) => this.keyboardKeyUp(e, channel));
 	};
 
-	keyboardKeyDown(message) {
+	keyboardKeyDown(message, channel = null) {
 		if (KEY_CODE_MAP[message.keyCode] != undefined) {
-			if (this.keyboadKeyPressed[message.keyCode] != true) {
-				this.keyboadKeyPressed[message.keyCode] = true;
+			if (this.keyboardKeyPressed[message.keyCode] != true) {
+				this.keyboardKeyPressed[message.keyCode] = true;
 				let newMessage = Generate.NoteEvent(NOTE_ON_EVENT, KEY_CODE_MAP[message.keyCode]);
 				if (newMessage !== null) {
-					this.sendMidiMessage(newMessage);
+					this.sendMidiMessage(newMessage, channel);
 				}
 			}
 		}
 	};
 
-	keyboardKeyUp(message) {
+	keyboardKeyUp(message, channel = null) {
 		if (KEY_CODE_MAP[message.keyCode] != undefined) {
-			if (this.keyboadKeyPressed[message.keyCode] == true) {
-				delete this.keyboadKeyPressed[message.keyCode];
+			if (this.keyboardKeyPressed[message.keyCode] == true) {
+				delete this.keyboardKeyPressed[message.keyCode];
 				let newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, KEY_CODE_MAP[message.keyCode]);
 				if (newMessage !== null) {
-					this.sendMidiMessage(newMessage);
+					this.sendMidiMessage(newMessage, channel);
 				}
 			}
 		}
 	}
 
-	sendMidiMessage(message) {}
+	sendMidiMessage(message, channel = null) {
+		if(channel != null) {
+			message.data[0] = message.data[0] | parseInt(channel - 1, 16);
+		}
+		this.boundOutputs.forEach((output) => {
+			output.send(message.data, message.timeStamp);
+		});
+		if (this.loopback) {
+			this.onMIDIMessage(message, this.key);
+		}
+	}
 
 }

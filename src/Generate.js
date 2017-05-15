@@ -50,7 +50,7 @@ export default class Generate {
 
 		const message = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data}) || {"data": data};
 
-		switch (data[0]) {
+		switch (data[0] & 0xF0) {
 			case MIDI_NOTE_ON:
 				return DataProcess.NoteEvent(message, key);
 				break;

@@ -25,4 +25,8 @@ export default class Convert {
 		return -(halfmax - value) / halfmax;
 	}
 
+	static MidiChannel (value) {
+		return (value & 0x0F) + 1;
+	}
+
 }

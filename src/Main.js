@@ -149,18 +149,10 @@ export default class Mizzy extends MIDIEvents {
 		this.midiAccess = midiAccessObj;
 	}
 
-	sendMidiMessage(message) {
-		this.boundOutputs.forEach((output) => {
-			output.send(message.data, message.timeStamp);
-		});
-		if (this.loopback) {
-			this.onMIDIMessage(message, this.key);
 		}
 	}
 
 	panic () {
 		for(let i = 0; i < 127; i++) {
 			this.sendMidiMessage(Generate.MidiEvent(Mizzy.Generate.NoteOff(i, 127), this.key));
-		}
-	}
 }
