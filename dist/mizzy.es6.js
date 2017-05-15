@@ -83,6 +83,10 @@ class Convert {
 		return -(halfmax - value) / halfmax;
 	}
 
+	static MidiChannel (value) {
+		return (value & 0x0F) + 1;
+	}
+
 }
 
 const MIDI_NOTE_ON = 0x90;
@@ -162,7 +166,8 @@ class DataProcess {
 			"inKey": DataProcess.isNoteInKey(notes, key),
 			"value": value,
 			"velocity": message.data[2],
-			"frequency": Convert.MIDINoteToFrequency(value)
+			"frequency": Convert.MIDINoteToFrequency(value),
+			"channel" : Convert.MidiChannel(message.data[0])
 		};
 		return Object.assign(message, data);
 	};
@@ -174,6 +179,7 @@ class DataProcess {
 			"value": message.data[2],
 			"ratio": Convert.MidiValueToRatio(message.data[2]),
 			"polarRatio":Convert.MidiValueToPolarRatio(message.data[2]),
+			"channel" : Convert.MidiChannel(message.data[0])
 		});
 	}
 
@@ -183,6 +189,7 @@ class DataProcess {
 			"cc": controlName,
 			"value": message.data[1],
 			"ratio": Convert.MidiValueToRatio(message.data[2]),
+			"channel" : Convert.MidiChannel(message.data[0])
 		});
 	}
 
@@ -194,6 +201,7 @@ class DataProcess {
 			"value": raw,
 			"polar": Convert.PitchWheelToPolar(raw),
 			"polarRatio": Convert.PitchWheelToPolarRatio(raw),
+			"channel" : Convert.MidiChannel(message.data[0])
 		});
 	}
 
@@ -285,7 +293,7 @@ class Generate {
 
 		const message = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data}) || {"data": data};
 
-		switch (data[0]) {
+		switch (data[0] & 0xF0) {
 			case MIDI_NOTE_ON:
 				return DataProcess.NoteEvent(message, key);
 				break;
@@ -358,7 +366,7 @@ class MIDIEvents extends Events {
 	constructor() {
 		super();
 		this.keysPressed = [];
-		this.keyboadKeyPressed = [];
+		this.keyboardKeyPressed = [];
 	}
 
 	/**
@@ -368,7 +376,7 @@ class MIDIEvents extends Events {
 	 */
 	onMIDIMessage(message, key = ENHARMONIC_KEYS[0]) {
 		let eventName = null, data = null;
-		switch (message.data[0]) {
+		switch (message.data[0] & 0xF0) {
 			case MIDI_NOTE_OFF:
 				eventName = NOTE_OFF_EVENT;
 				delete this.keysPressed[message.data[1]];
@@ -418,12 +426,20 @@ class MIDIEvents extends Events {
 	 * @param handler
 	 * @returns {Function}
 	 */
-	onCC(cc, handler) {
-		return this.on(CONTROLLER_EVENT, data => {
-			if (data.cc == cc) {
-				handler(data);
-			}
-		});
+	onCC(cc, handler, channel = null) {
+		if(channel == null) {
+			return this.on(CONTROLLER_EVENT, data => {
+				if (data.cc == cc) {
+					handler(data);
+				}
+			});
+		} else {
+			return this.on(CONTROLLER_EVENT, data => {
+				if (data.cc == cc && data.channel == channel) {
+					handler(data);
+				}
+			});
+		}
 	}
 
 	/**
@@ -472,23 +488,39 @@ class MIDIEvents extends Events {
 	 * @param handler
 	 * @returns {Function}
 	 */
-	pressNoteNumber(number, handler) {
-		return this.on(NOTE_ON_EVENT, data => {
-			if (data.value == number) {
-				handler(data);
-			}
-		});
+	pressNoteNumber(number, handler, channel = null) {
+		if(channel == null) {
+			return this.on(NOTE_ON_EVENT, data => {
+				if (data.value == number) {
+					handler(data);
+				}
+			});
+		} else {
+			return this.on(NOTE_ON_EVENT, data => {
+				if (data.value == number && data.channel == channel) {
+					handler(data);
+				}
+			});
+		}
 	};
 	removePressNoteNumber(handler) {
 		return this.off(NOTE_ON_EVENT, handler);
 	}
 	// EZ binding for key values. Can only be unbound with unbindALL()
-	releaseNoteNumber(number, handler) {
-		return this.on(NOTE_OFF_EVENT, data => {
-			if (data.value == number) {
-				handler(data);
-			}
-		});
+	releaseNoteNumber(number, handler, channel = null) {
+		if(channel == null) {
+			return this.on(NOTE_OFF_EVENT, data => {
+				if (data.value == number) {
+					handler(data);
+				}
+			});
+		} else {
+			return this.on(NOTE_OFF_EVENT, data => {
+				if (data.value == number && data.channel == channel) {
+					handler(data);
+				}
+			});
+		}
 	};
 	removeReleaseNoteNumber(handler) {
 		return this.off(NOTE_OFF_EVENT, handler);
@@ -502,36 +534,36 @@ class MIDIEvents extends Events {
 	 * @param offHandler
 	 * @returns {{onRange: Array, offRange: Array}}
 	 */
-	keyToggleRange(min, max, onHandler, offHandler) {
+	keyToggleRange(min, max, onHandler, offHandler, channel = null) {
 		return {
-			press: this.onSplit(min, max, onHandler),
-			release: this.offSplit(min, max, offHandler)
+			press: this.onSplit(min, max, onHandler, channel),
+			release: this.offSplit(min, max, offHandler, channel)
 		}
 	};
 
-	onSplit(min, max, onHandler) {
+	onSplit(min, max, onHandler, channel = null) {
 		let on = [];
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
-				on.push(this.pressNoteNumber(i, onHandler));
+				on.push(this.pressNoteNumber(i, onHandler, channel));
 			}
 		} else {
 			for (let i = max; i >= min; i--) {
-				on.push(this.pressNoteNumber(i, onHandler));
+				on.push(this.pressNoteNumber(i, onHandler, channel));
 			}
 		}
 		return on;
 	};
 
-	offSplit(min, max, offHandler) {
+	offSplit(min, max, offHandler, channel = null) {
 		let off = [];
 		if (max > min) {
 			for (let i = min; i <= max; i++) {
-				off.push(this.releaseNoteNumber(i, offHandler));
+				off.push(this.releaseNoteNumber(i, offHandler, channel));
 			}
 		} else {
 			for (let i = max; i >= min; i--) {
-				off.push(this.releaseNoteNumber(i, offHandler));
+				off.push(this.releaseNoteNumber(i, offHandler, channel));
 			}
 		}
 		return off;
@@ -558,41 +590,51 @@ class MIDIEvents extends Events {
 	/**
 	 * Bind the computer (qwerty) keyboard to allow it to generate MIDI note on and note off messages.
 	 */
-	bindKeyboard() {
-		window.addEventListener(KEYBOARD_EVENT_KEY_DOWN, (e) => this.keyboardKeyDown(e));
-		window.addEventListener(KEYBOARD_EVENT_KEY_UP, (e) => this.keyboardKeyUp(e));
+	bindKeyboard(channel = null) {
+		window.addEventListener(KEYBOARD_EVENT_KEY_DOWN, (e) => this.keyboardKeyDown(e, channel));
+		window.addEventListener(KEYBOARD_EVENT_KEY_UP, (e) => this.keyboardKeyUp(e, channel));
 	};
 
-	unBindKeyboard() {
-		window.removeEventListener(KEYBOARD_EVENT_KEY_DOWN, (e) => this.keyboardKeyDown(e));
-		window.removeEventListener(KEYBOARD_EVENT_KEY_UP, (e) => this.keyboardKeyUp(e));
+	unBindKeyboard(channel = null) {
+		window.removeEventListener(KEYBOARD_EVENT_KEY_DOWN, (e) => this.keyboardKeyDown(e, channel));
+		window.removeEventListener(KEYBOARD_EVENT_KEY_UP, (e) => this.keyboardKeyUp(e, channel));
 	};
 
-	keyboardKeyDown(message) {
+	keyboardKeyDown(message, channel = null) {
 		if (KEY_CODE_MAP[message.keyCode] != undefined) {
-			if (this.keyboadKeyPressed[message.keyCode] != true) {
-				this.keyboadKeyPressed[message.keyCode] = true;
+			if (this.keyboardKeyPressed[message.keyCode] != true) {
+				this.keyboardKeyPressed[message.keyCode] = true;
 				let newMessage = Generate.NoteEvent(NOTE_ON_EVENT, KEY_CODE_MAP[message.keyCode]);
 				if (newMessage !== null) {
-					this.sendMidiMessage(newMessage);
+					this.sendMidiMessage(newMessage, channel);
 				}
 			}
 		}
 	};
 
-	keyboardKeyUp(message) {
+	keyboardKeyUp(message, channel = null) {
 		if (KEY_CODE_MAP[message.keyCode] != undefined) {
-			if (this.keyboadKeyPressed[message.keyCode] == true) {
-				delete this.keyboadKeyPressed[message.keyCode];
+			if (this.keyboardKeyPressed[message.keyCode] == true) {
+				delete this.keyboardKeyPressed[message.keyCode];
 				let newMessage = Generate.NoteEvent(NOTE_OFF_EVENT, KEY_CODE_MAP[message.keyCode]);
 				if (newMessage !== null) {
-					this.sendMidiMessage(newMessage);
+					this.sendMidiMessage(newMessage, channel);
 				}
 			}
 		}
 	}
 
-	sendMidiMessage(message) {}
+	sendMidiMessage(message, channel = null) {
+		if(channel != null) {
+			message.data[0] = message.data[0] | parseInt(channel - 1, 16);
+		}
+		this.boundOutputs.forEach((output) => {
+			output.send(message.data, message.timeStamp);
+		});
+		if (this.loopback) {
+			this.onMIDIMessage(message, this.key);
+		}
+	}
 
 }
 
@@ -601,7 +643,7 @@ const DEFAULT_LOOP_LENGTH = 16;
 const DEFAULT_TEMPO = 120;
 const TICK_LENGTH = 0.2;
 
-class Clock extends Events{
+class Clock extends Events {
 
 	constructor (context) {
 		super();
@@ -624,22 +666,23 @@ class Clock extends Events{
 		this.loopIndex = 0;
 	}
 
-	play (sync = this.context.currentTime + 0.005, index = 0, loopIndex = 0) {
-		this.startClock = sync;
+	play (index = 0, loopIndex = 0) {
+		this.tick = 0;
+		this.startClock = this.context.currentTime + 0.005;
 		this.index = index;
 		this.loopIndex = loopIndex;
 		this.playing = true;
-		this.trigger("play", sync);
+		this.trigger("play", this.context.currentTime + 0.005);
 		this.schedule();
 	}
 
-	stop() {
+	stop () {
 		this.trigger("stop");
 		this.playing = false;
 	}
 
 	schedule () {
-		if(this.playing) {
+		if (this.playing) {
 			var playHead = this.context.currentTime - this.startClock;
 			while (this.tick < playHead + TICK_LENGTH) {
 				var localPlayHead = this.tick + this.startClock;
@@ -662,10 +705,10 @@ class Clock extends Events{
 		this.index++;
 		this.loopIndex += this.direction;
 
-		if(this.loopIndex > this.looplength-1) {
+		if (this.loopIndex > this.looplength - 1) {
 			this.loopIndex = 0;
-		} else if(this.loopIndex < 0) {
-			this.loopIndex = this.looplength-1;
+		} else if (this.loopIndex < 0) {
+			this.loopIndex = this.looplength - 1;
 		}
 
 		this.tick += TICK_INCREMENT * beat;
@@ -818,17 +861,8 @@ class Mizzy extends MIDIEvents {
 		this.midiAccess = midiAccessObj;
 	}
 
-	sendMidiMessage(message) {
-		this.boundOutputs.forEach((output) => {
-			output.send(message.data, message.timeStamp);
-		});
-		if (this.loopback) {
-			this.onMIDIMessage(message, this.key);
-		}
-	}
-
 	panic () {
-		for(let i = 0; i < 127; i++) {
+		for (let i = 0; i < 127; i++) {
 			this.sendMidiMessage(Generate.MidiEvent(Mizzy.Generate.NoteOff(i, 127), this.key));
 		}
 	}
