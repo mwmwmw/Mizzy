@@ -5,7 +5,7 @@ const DEFAULT_LOOP_LENGTH = 16;
 const DEFAULT_TEMPO = 120;
 const TICK_LENGTH = 0.2;
 
-export default class Clock extends Events{
+export default class Clock extends Events {
 
 	constructor (context) {
 		super();
@@ -28,22 +28,23 @@ export default class Clock extends Events{
 		this.loopIndex = 0;
 	}
 
-	play (sync = this.context.currentTime + 0.005, index = 0, loopIndex = 0) {
-		this.startClock = sync;
+	play (index = 0, loopIndex = 0) {
+		this.tick = 0;
+		this.startClock = this.context.currentTime + 0.005;
 		this.index = index;
 		this.loopIndex = loopIndex;
 		this.playing = true;
-		this.trigger("play", sync);
+		this.trigger("play", this.context.currentTime + 0.005);
 		this.schedule();
 	}
 
-	stop() {
+	stop () {
 		this.trigger("stop");
 		this.playing = false;
 	}
 
 	schedule () {
-		if(this.playing) {
+		if (this.playing) {
 			var playHead = this.context.currentTime - this.startClock;
 			while (this.tick < playHead + TICK_LENGTH) {
 				var localPlayHead = this.tick + this.startClock;
@@ -66,10 +67,10 @@ export default class Clock extends Events{
 		this.index++;
 		this.loopIndex += this.direction;
 
-		if(this.loopIndex > this.looplength-1) {
+		if (this.loopIndex > this.looplength - 1) {
 			this.loopIndex = 0;
-		} else if(this.loopIndex < 0) {
-			this.loopIndex = this.looplength-1;
+		} else if (this.loopIndex < 0) {
+			this.loopIndex = this.looplength - 1;
 		}
 
 		this.tick += TICK_INCREMENT * beat;
