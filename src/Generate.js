@@ -46,6 +46,33 @@ export default class Generate {
 		return new Uint8Array([MIDI_PITCHBEND, msb, lsb]);
 	}
 
+	static MidiEvent (data, key) {
+
+		const message = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data}) || {"data": data};
+
+		switch (data[0] & 0xF0) {
+			case MIDI_NOTE_ON:
+				return DataProcess.NoteEvent(message, key);
+				break;
+			case MIDI_NOTE_OFF:
+				return DataProcess.NoteEvent(message, key);
+				break;
+			case MIDI_CONTROL_CHANGE:
+				return DataProcess.CCEvent(message);
+				break;
+			case MIDI_PITCHBEND:
+				return DataProcess.PitchWheelEvent(message);
+				break;
+			case MIDI_AFTERTOUCH:
+				return DataProcess.MidiControlEvent(message, AFTERTOUCH_EVENT);
+				break;
+			case MIDI_PROGRAM_CHANGE:
+				return DataProcess.MidiControlEvent(message, PROGRAM_CHANGE_EVENT);
+				break;
+		}
+
+	}
+
 	static NoteEvent(messageType, value, velocity = 127) {
 		let data = null;
 		switch (messageType) {
