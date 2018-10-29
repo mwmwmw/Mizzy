@@ -3,6 +3,9 @@ import {ENHARMONIC_KEYS, NOTE_ON_EVENT, NOTE_OFF_EVENT, CONTROLLER_EVENT, PITCHW
 import Generate from "./Generate";
 import Clock from "./Clock/Clock";
 
+if (!window.MIDIMessageEvent) {
+	window.MIDIMessageEvent = MidiMessage;
+}
 
 export default class Mizzy extends MIDIEvents {
 
@@ -40,12 +43,6 @@ export default class Mizzy extends MIDIEvents {
 
 		this.key = ENHARMONIC_KEYS[0]; // C-Major
 
-		if (!window.MIDIMessageEvent) {
-			window.MIDIMessageEvent = (name, params) => {
-				this.name = name;
-				return Object.assign(this, params);
-			}
-		}
 	}
 
 	initialize() {
@@ -153,5 +150,12 @@ export default class Mizzy extends MIDIEvents {
 		for (let i = 0; i < 127; i++) {
 			this.sendMidiMessage(Generate.MidiEvent(Mizzy.Generate.NoteOff(i, 127), this.key));
 		}
+	}
+}
+
+class MidiMessage extends MessageEvent {
+	constructor(name, params) {
+		this.name = name;
+		super(params);
 	}
 }
