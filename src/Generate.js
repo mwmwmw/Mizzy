@@ -47,33 +47,29 @@ export default class Generate {
 	}
 
 	static MidiEvent (data, key) {
+		const {MIDIMessageEvent} = window;
 
 		const message = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data}) || {"data": data};
 
 		switch (data[0] & 0xF0) {
 			case MIDI_NOTE_ON:
 				return DataProcess.NoteEvent(message, key);
-				break;
 			case MIDI_NOTE_OFF:
 				return DataProcess.NoteEvent(message, key);
-				break;
 			case MIDI_CONTROL_CHANGE:
 				return DataProcess.CCEvent(message);
-				break;
 			case MIDI_PITCHBEND:
 				return DataProcess.PitchWheelEvent(message);
-				break;
 			case MIDI_AFTERTOUCH:
 				return DataProcess.MidiControlEvent(message, AFTERTOUCH_EVENT);
-				break;
 			case MIDI_PROGRAM_CHANGE:
 				return DataProcess.MidiControlEvent(message, PROGRAM_CHANGE_EVENT);
-				break;
 		}
 
 	}
 
 	static NoteEvent(messageType, value, velocity = 127) {
+		const {MIDIMessageEvent} = window;
 		let data = null;
 		switch (messageType) {
 			case NOTE_ON_EVENT:
@@ -88,12 +84,14 @@ export default class Generate {
 	}
 
 	static CCEvent(cc, value) {
+		const {MIDIMessageEvent} = window;
 		let data = Generate.CC(cc, value);
 		const newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data});
 		return DataProcess.CCEvent(newMessage);
 	}
 
 	static PitchBendEvent(value) {
+		const {MIDIMessageEvent} = window;
 		let data = Generate.PitchBend(value);
 		const newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, {"data": data});
 		return DataProcess.CCEvent(newMessage);
