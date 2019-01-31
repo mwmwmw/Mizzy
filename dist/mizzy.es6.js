@@ -714,17 +714,9 @@ class Clock extends Events {
 
 }
 
-class MidiMessage extends MessageEvent {
-	constructor(name, params) {
-		super(params);
-		this.name = name;
-	} 
-}
-
 if (window.MIDIMessageEvent === undefined) {
-	window.MIDIMessageEvent = MidiMessage;
+	window.MIDIMessageEvent = MessageEvent;
 }
-
 
 class Mizzy extends MIDIEvents {
 

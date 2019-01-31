@@ -3,17 +3,9 @@ import {ENHARMONIC_KEYS, NOTE_ON_EVENT, NOTE_OFF_EVENT, CONTROLLER_EVENT, PITCHW
 import Generate from "./Generate";
 import Clock from "./Clock/Clock";
 
-class MidiMessage extends MessageEvent {
-	constructor(name, params) {
-		super(params);
-		this.name = name;
-	} 
-}
-
 if (window.MIDIMessageEvent === undefined) {
-	window.MIDIMessageEvent = MidiMessage;
+	window.MIDIMessageEvent = MessageEvent;
 }
-
 
 export default class Mizzy extends MIDIEvents {
 
