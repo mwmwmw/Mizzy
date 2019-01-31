@@ -645,7 +645,7 @@ class Clock extends Events {
 
 	constructor (context) {
 		super();
-		this.context = context || new AudioContext();
+		this.context = context || new (window.AudioContext || window.webkitAudioContext)();
 
 		this.BPM = DEFAULT_TEMPO;
 		this.tickSchedule;

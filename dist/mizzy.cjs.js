@@ -890,7 +890,7 @@ var Clock = function (_Events) {
 
 		var _this = possibleConstructorReturn(this, (Clock.__proto__ || Object.getPrototypeOf(Clock)).call(this));
 
-		_this.context = context || new AudioContext();
+		_this.context = context || new (window.AudioContext || window.webkitAudioContext)();
 
 		_this.BPM = DEFAULT_TEMPO;
 		_this.tickSchedule;
