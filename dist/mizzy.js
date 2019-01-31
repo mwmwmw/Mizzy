@@ -432,7 +432,7 @@ var Generate = function () {
 			    MIDIMessageEvent = _window.MIDIMessageEvent;
 
 
-			var message = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { "data": data }) || { "data": data };
+			var message = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { data: data });
 
 			switch (data[0] & 0xF0) {
 				case MIDI_NOTE_ON:
@@ -465,7 +465,7 @@ var Generate = function () {
 					data = Generate.NoteOff(value, velocity);
 					break;
 			}
-			var newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { "data": data }) || { "data": data };
+			var newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { data: data });
 			return DataProcess.NoteEvent(newMessage, this.key);
 		}
 	}, {
@@ -475,7 +475,7 @@ var Generate = function () {
 			    MIDIMessageEvent = _window3.MIDIMessageEvent;
 
 			var data = Generate.CC(cc, value);
-			var newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { "data": data });
+			var newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { data: data });
 			return DataProcess.CCEvent(newMessage);
 		}
 	}, {
@@ -485,7 +485,7 @@ var Generate = function () {
 			    MIDIMessageEvent = _window4.MIDIMessageEvent;
 
 			var data = Generate.PitchBend(value);
-			var newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { "data": data });
+			var newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { data: data });
 			return DataProcess.CCEvent(newMessage);
 		}
 	}]);
