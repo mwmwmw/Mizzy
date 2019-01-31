@@ -5,8 +5,8 @@ import Clock from "./Clock/Clock";
 
 class MidiMessage extends MessageEvent {
 	constructor(name, params) {
-		this.name = name;
 		super(params);
+		this.name = name;
 	} 
 }
 

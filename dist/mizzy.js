@@ -428,34 +428,33 @@ var Generate = function () {
 	}, {
 		key: "MidiEvent",
 		value: function MidiEvent(data, key) {
+			var _window = window,
+			    MIDIMessageEvent = _window.MIDIMessageEvent;
+
 
 			var message = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { "data": data }) || { "data": data };
 
 			switch (data[0] & 0xF0) {
 				case MIDI_NOTE_ON:
 					return DataProcess.NoteEvent(message, key);
-					break;
 				case MIDI_NOTE_OFF:
 					return DataProcess.NoteEvent(message, key);
-					break;
 				case MIDI_CONTROL_CHANGE:
 					return DataProcess.CCEvent(message);
-					break;
 				case MIDI_PITCHBEND:
 					return DataProcess.PitchWheelEvent(message);
-					break;
 				case MIDI_AFTERTOUCH:
 					return DataProcess.MidiControlEvent(message, AFTERTOUCH_EVENT);
-					break;
 				case MIDI_PROGRAM_CHANGE:
 					return DataProcess.MidiControlEvent(message, PROGRAM_CHANGE_EVENT);
-					break;
 			}
 		}
 	}, {
 		key: "NoteEvent",
 		value: function NoteEvent(messageType, value) {
 			var velocity = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 127;
+			var _window2 = window,
+			    MIDIMessageEvent = _window2.MIDIMessageEvent;
 
 			var data = null;
 			switch (messageType) {
@@ -472,6 +471,9 @@ var Generate = function () {
 	}, {
 		key: "CCEvent",
 		value: function CCEvent(cc, value) {
+			var _window3 = window,
+			    MIDIMessageEvent = _window3.MIDIMessageEvent;
+
 			var data = Generate.CC(cc, value);
 			var newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { "data": data });
 			return DataProcess.CCEvent(newMessage);
@@ -479,6 +481,9 @@ var Generate = function () {
 	}, {
 		key: "PitchBendEvent",
 		value: function PitchBendEvent(value) {
+			var _window4 = window,
+			    MIDIMessageEvent = _window4.MIDIMessageEvent;
+
 			var data = Generate.PitchBend(value);
 			var newMessage = new MIDIMessageEvent(MIDI_MESSAGE_EVENT, { "data": data });
 			return DataProcess.CCEvent(newMessage);
@@ -971,6 +976,25 @@ var Clock = function (_Events) {
 	return Clock;
 }(Events);
 
+var MidiMessage = function (_MessageEvent) {
+	inherits(MidiMessage, _MessageEvent);
+
+	function MidiMessage(name, params) {
+		classCallCheck(this, MidiMessage);
+
+		var _this = possibleConstructorReturn(this, (MidiMessage.__proto__ || Object.getPrototypeOf(MidiMessage)).call(this, params));
+
+		_this.name = name;
+		return _this;
+	}
+
+	return MidiMessage;
+}(MessageEvent);
+
+if (window.MIDIMessageEvent === undefined) {
+	window.MIDIMessageEvent = MidiMessage;
+}
+
 var Mizzy = function (_MIDIEvents) {
 	inherits(Mizzy, _MIDIEvents);
 	createClass(Mizzy, null, [{
@@ -1008,41 +1032,35 @@ var Mizzy = function (_MIDIEvents) {
 	function Mizzy() {
 		classCallCheck(this, Mizzy);
 
-		var _this = possibleConstructorReturn(this, (Mizzy.__proto__ || Object.getPrototypeOf(Mizzy)).call(this));
+		var _this2 = possibleConstructorReturn(this, (Mizzy.__proto__ || Object.getPrototypeOf(Mizzy)).call(this));
 
-		_this.keysPressed = [];
-		_this.midiAccess = null;
-		_this.loopback = true;
+		_this2.keysPressed = [];
+		_this2.midiAccess = null;
+		_this2.loopback = true;
 
-		_this.boundInputs = [];
-		_this.boundOutputs = [];
+		_this2.boundInputs = [];
+		_this2.boundOutputs = [];
 
-		_this.clock = new Clock();
+		_this2.clock = new Clock();
 
-		_this.key = ENHARMONIC_KEYS[0]; // C-Major
+		_this2.key = ENHARMONIC_KEYS[0]; // C-Major
 
-		if (!window.MIDIMessageEvent) {
-			window.MIDIMessageEvent = function (name, params) {
-				_this.name = name;
-				return Object.assign(_this, params);
-			};
-		}
-		return _this;
+		return _this2;
 	}
 
 	createClass(Mizzy, [{
 		key: "initialize",
 		value: function initialize() {
-			var _this2 = this;
+			var _this3 = this;
 
 			if (this.midiAccess === null) {
 				if (navigator.requestMIDIAccess) {
 					return navigator.requestMIDIAccess({
 						sysex: false
 					}).then(function (e) {
-						return _this2.onMIDISuccess(e);
+						return _this3.onMIDISuccess(e);
 					}, function (e) {
-						return _this2.onMIDIFailure(e);
+						return _this3.onMIDIFailure(e);
 					});
 				} else {
 					console.warn("[Mizzy] Your browser does not support Web MIDI API. You can still use the local loopback however.");
@@ -1078,11 +1096,11 @@ var Mizzy = function (_MIDIEvents) {
 	}, {
 		key: "bindToInput",
 		value: function bindToInput(input) {
-			var _this3 = this;
+			var _this4 = this;
 
 			this.boundInputs.push(input);
 			input.onmidimessage = function (e) {
-				return _this3.onMIDIMessage(e, _this3.key);
+				return _this4.onMIDIMessage(e, _this4.key);
 			};
 		}
 	}, {
