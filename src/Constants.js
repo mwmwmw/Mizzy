@@ -80,3 +80,134 @@ export const KEY_NOTE_ARRAYS = {
 	"F": ["F", "G", "A", "Bb", "C", "D", "E"]
 };
 
+
+export const INTERVALS = {
+	PERFECT_UNISON: 0,
+	MINOR_SECOND: 1,
+	MAJOR_SECOND: 2,
+	MINOR_THIRD: 3,
+	MAJOR_THIRD: 4,
+	PERFECT_FOURTH: 5,
+	DIMINISHED_FIFTH: 6,
+	PERFECT_FIFTH: 7,
+	MINOR_SIXTH: 8,
+	MAJOR_SIXTH: 9,
+	MINOR_SEVENTH: 10,
+	MAJOR_SEVENTH: 11,
+	PERFECT_OCTAVE: 12,
+	AUGMENTED_OCTAVE: 13, 
+	DOUBLE_OCTAVE: 24,
+}
+
+ export const getNoteSequence = (startNote, interval) => {
+	const sequence = [];
+	let currentNote = startNote;
+	
+	while (currentNote <= 127) {
+		sequence.push(currentNote);
+		currentNote += interval;
+	}
+
+	return sequence;
+};
+
+
+
+export const getRepeatingNoteSequence = (startNote, interval) => {
+	const sequence = [];
+	let currentNote = startNote;
+
+	// Add first note
+	sequence.push(currentNote);
+	currentNote += interval;
+
+	// Keep adding notes until we get back to a note that's equivalent to startNote (mod 12)
+	while ((currentNote % 12) !== (startNote % 12) || currentNote === startNote) {
+		sequence.push(currentNote);
+		currentNote += interval;
+	}
+
+	return sequence;
+};
+
+export const getRepeatingNoteSequenceRaw = (startNote, interval) => {
+	const sequence = [];
+	let currentNote = startNote;
+
+	// Keep adding notes until we reach 128
+	while (currentNote <= 127) {
+		sequence.push(currentNote);
+		currentNote += interval;
+	}
+
+	return sequence;
+};
+
+
+export const hasAllValues = (arrays, startValue, endValue) => {
+	// Flatten all arrays into a single array
+	const flatArray = arrays.flat();
+	
+	// Check if each value in range exists
+	for (let i = startValue; i <= endValue; i++) {
+		if (!flatArray.includes(i)) {
+			return false;
+		}
+	}
+
+	return true;
+};
+const noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+export const getMIDINoteName = (midiNoteNumber) => {
+	const noteIndex = midiNoteNumber % 12;
+	return noteNames[noteIndex];
+};
+
+export const hasAllNoteValues = (arrays, startValue, endValue) => {
+	// Flatten all arrays into a single array and convert to note names
+	const flatArray = arrays.flat().map(getMIDINoteName);
+	
+	// Get note names for range
+	const expectedNotes = [];
+	for (let i = startValue; i <= endValue; i++) {
+		expectedNotes.push(getMIDINoteName(i));
+	}
+
+	// Check if each note name exists
+	for (const noteName of expectedNotes) {
+		if (!flatArray.includes(noteName)) {
+			return false;
+		}
+	}
+
+	return true;
+};
+
+export function getNoteSequenceWithNames(interval) { 
+
+    let circles = [];
+    let names = [];
+    let seq = [];
+    let i = 0;
+    while (!hasAllValues(circles, 0, 127)) {   
+        const sequence = getRepeatingNoteSequenceRaw(0+i, interval);
+        console.log(sequence);
+        circles.push(sequence);
+        i++;
+    }
+
+    while (!hasAllNoteValues(seq, 0, 24)) {   
+        const sequence = getRepeatingNoteSequence(0+i, interval);
+    const nameSequence = sequence.map(getMIDINoteName);
+
+        seq.push(sequence);
+        names.push(nameSequence);
+        i++;
+    }
+
+
+    return {
+        circles,
+        names
+    };
+}
