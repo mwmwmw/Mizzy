@@ -3,7 +3,7 @@ import { WebMidi } from "./types";
 import { MIDIEvent, MIDIProcessedEvent,  CCHandler, KeyToggleHandlers } from "./types";
 
 import Events, { CustomMIDIMessageEvent } from "./events";
-import { processNoteEvent, processCCEvent, processPitchWheelEvent, processMidiControlEvent } from "./dataProcess";
+import { processNoteEvent, processCCEvent, processPitchWheelEvent, processMidiControlEvent } from "./dataprocess";
 import { noteEvent } from "./generate";
 
 import {

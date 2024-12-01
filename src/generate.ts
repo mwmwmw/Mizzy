@@ -4,7 +4,7 @@ import {
     processPitchWheelEvent,
     processMidiControlEvent,
     MIDIMessage
-} from "./dataProcess";
+} from "./dataprocess";
 
 
 import { MIDIMessageEventClass } from "./events";
