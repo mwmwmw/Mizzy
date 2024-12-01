@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
-    <script src="mizzy.js" type="application/javascript"></script>
-    <script>
-	    var m = new Mizzy();
+    <script src="../src/index.ts" type="application/javascript"></script>
+	<script>
+		var m = new Mizzy();
 	    m.initialize().then(() => {
 		    m.bindToAllInputs();
 		    m.bindToAllOutputs();
@@ -48,6 +48,7 @@
 		    var ymessage = Mizzy.Generate.CCEvent(2, y);
 		    m.sendMidiMessage(ymessage);
 	    });
+	</script>
     </script>
 </head>
 <body>

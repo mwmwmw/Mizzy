@@ -1,0 +1,23 @@
+import { MIDIMessage } from "./dataProcess";
+import { NOTE_OFF_EVENT, NOTE_ON_EVENT } from "./constants";
+export declare function noteOn(noteNumber: number, velocity: number): Uint8Array;
+export declare function noteOff(noteNumber: number, velocity: number): Uint8Array;
+export declare function afterTouch(noteNumber: number, value: number): Uint8Array;
+export declare function cc(controller: number, value: number): Uint8Array;
+export declare function programChange(instrument: number): Uint8Array;
+export declare function channelPressure(pressure: number): Uint8Array;
+export declare function pitchBend(value: number): Uint8Array;
+export declare function midiEvent(data: Uint8Array, key?: string): MIDIMessage;
+export declare function noteEvent(messageType: typeof NOTE_ON_EVENT | typeof NOTE_OFF_EVENT, value: number, velocity?: number, key?: string): MIDIMessage;
+export declare function ccEvent(controller: number, value: number): MIDIMessage;
+export declare function pitchBendEvent(value: number): MIDIMessage;
+export declare const getRepeatingNoteSequence: (startNote: number, interval: number) => number[];
+export declare const hasAllValues: (arrays: number[][], startValue: number, endValue: number) => boolean;
+export declare const getMIDINoteName: (midiNoteNumber: number) => string;
+export declare const getNoteSequence: (startNote: number, interval: number) => number[];
+export declare const getRepeatingNoteSequenceRaw: (startNote: number, interval: number) => number[];
+export declare const hasAllNoteValues: (arrays: number[][], startValue: number, endValue: number) => boolean;
+export declare function getNoteSequenceWithNames(interval: number): {
+    circles: number[][];
+    names: string[][];
+};
