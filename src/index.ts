@@ -1,5 +1,5 @@
 import MIDIEvents from "./midievents";
-import { ENHARMONIC_KEYS, NOTE_OFF_EVENT } from "./constants";
+import { AFTERTOUCH_EVENT, CONTROLLER_EVENT, ENHARMONIC_KEYS, NOTE_OFF_EVENT, NOTE_ON_EVENT, PITCHWHEEL_EVENT, PROGRAM_CHANGE_EVENT } from "./constants";
 import { noteEvent} from "./generate";
 import Clock from "./clock";
 import { WebMidi } from "./types";
@@ -43,6 +43,17 @@ export default class Mizzy extends MIDIEvents {
 	get keys() {
 		return ENHARMONIC_KEYS;
 	}
+
+    get type() {
+        return {
+            NOTE_ON_EVENT,
+            NOTE_OFF_EVENT,
+            PROGRAM_CHANGE_EVENT,
+            CONTROLLER_EVENT,
+            PITCHWHEEL_EVENT,
+            AFTERTOUCH_EVENT,   
+        }
+    }
 
     setKey(keyletter: string = "C"): void {
         this.key = ENHARMONIC_KEYS[ENHARMONIC_KEYS.indexOf(keyletter.toUpperCase())] || "C";

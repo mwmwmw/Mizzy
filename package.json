@@ -1,6 +1,6 @@
 {
   "name": "mizzy",
-  "version": "0.1.0", 
+  "version": "0.1.0",
   "description": "A MIDI Processing Library",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,19 +14,21 @@
     "Music"
   ],
   "contributors": [
-    "Matthew Willox <matthew@gskinner.com> (https://github.com/mwmwmw)"
+    "Matthew Willox <matthew@cybermancers.ca> (https://github.com/mwmwmw)"
   ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/mwmwmw/Mizzy/issues"
   },
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch"
+    "build": "rollup -c",
+    "build:types": "tsc --emitDeclarationOnly",
+    "watch": "rollup -c -w"
   },
   "homepage": "https://github.com/mwmwmw/Mizzy#readme",
   "devDependencies": {
+    "rollup": "^4.28.0",
+    "rollup-plugin-typescript2": "^0.36.0",
     "typescript": "^5.0.0"
   }
-
 }

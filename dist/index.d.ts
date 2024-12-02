@@ -7,6 +7,14 @@ export default class Mizzy extends MIDIEvents {
     constructor();
     initialize(): Promise<void>;
     get keys(): string[];
+    get type(): {
+        NOTE_ON_EVENT: string;
+        NOTE_OFF_EVENT: string;
+        PROGRAM_CHANGE_EVENT: string;
+        CONTROLLER_EVENT: string;
+        PITCHWHEEL_EVENT: string;
+        AFTERTOUCH_EVENT: string;
+    };
     setKey(keyletter?: string): void;
     getMidiInputs(): Iterator<WebMidi.MIDIInput> | undefined;
     getMidiOutputs(): Iterator<WebMidi.MIDIOutput> | undefined;

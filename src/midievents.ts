@@ -3,8 +3,8 @@ import { WebMidi } from "./types";
 import { MIDIEvent, MIDIProcessedEvent,  CCHandler, KeyToggleHandlers } from "./types";
 
 import Events, { CustomMIDIMessageEvent } from "./events";
-import { processNoteEvent, processCCEvent, processPitchWheelEvent, processMidiControlEvent } from "./dataprocess";
-import { noteEvent } from "./generate";
+import { processNoteEvent, processCCEvent, processPitchWheelEvent, processMidiControlEvent, MIDIMessage } from "./dataprocess";
+import { ccEvent, noteEvent, pitchBendEvent } from "./generate";
 
 import {
   AFTERTOUCH_EVENT,
@@ -342,7 +342,28 @@ export default class MIDIEvents extends Events {
 	/**
 	 * Sends a MIDI message to the bound outputs.
 	 */
-	sendMidiMessage(message: CustomMIDIMessageEvent, channel: number | null = null): void {
+	send(messageType: string, value: number, velocity: number = 127, channel: number | null = null): void {
+		let message: MIDIMessage;
+		switch(messageType) {
+			case NOTE_ON_EVENT:
+			case NOTE_OFF_EVENT:
+				message = noteEvent(messageType, value, velocity, this.key);
+				break;
+			case CONTROLLER_EVENT:
+				message = ccEvent(value, velocity);
+				break;
+			case PITCHWHEEL_EVENT:
+				message = pitchBendEvent(value);
+				break;
+			default:
+				throw new Error("Unsupported MIDI message type");
+		}
+
+			this.sendMidiMessage(message, channel);
+		
+	}
+
+	sendMidiMessage(message: MIDIMessage, channel: number | null = null): void {
 		if(channel != null) {
 			message.data[0] = (message.data[0] & 0xF0) | ((channel - 1) & 0x0F);
 		}

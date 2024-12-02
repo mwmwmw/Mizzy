@@ -1,6 +1,7 @@
 import { WebMidi } from "./types";
 import { MIDIEvent, MIDIProcessedEvent, CCHandler, KeyToggleHandlers } from "./types";
-import Events, { CustomMIDIMessageEvent } from "./events";
+import Events from "./events";
+import { MIDIMessage } from "./dataprocess";
 export default class MIDIEvents extends Events {
     protected keysPressed: {
         [key: string | number]: MIDIProcessedEvent;
@@ -128,5 +129,6 @@ export default class MIDIEvents extends Events {
     /**
      * Sends a MIDI message to the bound outputs.
      */
-    sendMidiMessage(message: CustomMIDIMessageEvent, channel?: number | null): void;
+    send(messageType: string, value: number, velocity?: number, channel?: number | null): void;
+    sendMidiMessage(message: MIDIMessage, channel?: number | null): void;
 }

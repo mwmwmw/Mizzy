@@ -1,4 +1,4 @@
-import { MIDIMessage } from "./dataProcess";
+import { MIDIMessage } from "./dataprocess";
 import { NOTE_OFF_EVENT, NOTE_ON_EVENT } from "./constants";
 export declare function noteOn(noteNumber: number, velocity: number): Uint8Array;
 export declare function noteOff(noteNumber: number, velocity: number): Uint8Array;

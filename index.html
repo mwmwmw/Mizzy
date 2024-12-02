@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mizzy Example</title>
+</head>
+<body>
+    <div>
+        <h1>Mizzy MIDI Example</h1>
+        <div id="status">Waiting for MIDI...</div>
+        <div id="notes">Notes played:</div>
+    </div>
+    <script src="./dist/mizzy.js"></script>
+    <script type="module">
+
+        // Create a new instance of Mizzy
+        const m = new mizzy();
+
+        // Initialize and set up MIDI
+        async function setup() {
+            try {
+                // Initialize MIDI
+                await m.initialize();
+                document.getElementById('status').textContent = 'MIDI Ready!';
+
+                // Bind to all available MIDI inputs
+                m.bindToAllInputs();
+                m.bindToAllOutputs();
+
+                // Listen for note on events
+                m.on(m.type.NOTE_ON_EVENT,(event) => {
+                    console.log(`Note On: ${event.note} (${event.value}) - Velocity: ${event.velocity}`);
+                    const notesDiv = document.getElementById('notes');
+                    notesDiv.textContent = `Last note played: ${event.note} (${event.value})`;
+                });
+
+                m.on(m.type.NOTE_OFF_EVENT,(event) => {
+                    console.log(`Note Off: ${event.note} (${event.value}) - Velocity: ${event.velocity}`);
+                    const notesDiv = document.getElementById('notes');
+                    notesDiv.textContent = `Last note played: ${event.note} (${event.value})`;
+                });
+
+                m.on(m.type.CONTROLLER_EVENT,(event) => {
+                    console.log(`CC: ${event.cc} (${event.value})`);
+                    const notesDiv = document.getElementById('notes');
+                    notesDiv.textContent = `Last CC: ${event.cc} (${event.value})`;
+                });
+
+                window.addEventListener('keydown', (event) => {
+                    console.log("Sending note on");
+                    m.send(m.type.NOTE_ON_EVENT, 60, 127, 0);
+                m.send(m.type.NOTE_ON_EVENT, 70, 127, 0);
+                m.send(m.type.NOTE_ON_EVENT, 77, 127, 0);
+                });
+
+                console.log(m.outputDevices);
+        
+
+
+            } catch (error) {
+                console.error('Error setting up MIDI:', error);
+                document.getElementById('status').textContent = 'Error initializing MIDI';
+            }
+        }
+
+        // Run setup
+        setup();
+    </script>
+</body>
+</html>
