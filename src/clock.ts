@@ -7,7 +7,6 @@ const DEFAULT_TEMPO = 120;
 const TICK_LENGTH = 0.2;
 
 export default class Clock {
-  private context: AudioContext;
   private BPM: number;
   private tickSchedule?: number;
   private tick: number;
@@ -21,9 +20,8 @@ export default class Clock {
   private mizzy: Mizzy;
   private tickHandlers: { [key: number]: ((tick: ClockTick) => void)[] } = {};
 
-  constructor(mizzy: Mizzy, context?: AudioContext) {
+  constructor(mizzy: Mizzy) {
     this.mizzy = mizzy;
-    this.context = context || new window.AudioContext();
     this.BPM = DEFAULT_TEMPO;
     this.tick = 0;
     this.playing = false;
@@ -44,6 +42,10 @@ export default class Clock {
     }
   }
 
+  now(): number {
+    return performance.now() / 1000;
+  }
+
   reset(): void {
     this.index = 0;
     this.loopIndex = 0;
@@ -51,7 +53,7 @@ export default class Clock {
 
   play(index: number = 0, loopIndex: number = 0): void {
     this.tick = 0;
-    this.startClock = this.context.currentTime + 0.005;
+    this.startClock = this.now() + 0.005;
     this.index = index;
     this.loopIndex = loopIndex;
     this.playing = true;
@@ -68,7 +70,7 @@ export default class Clock {
 
   private schedule(): void {
     if (this.playing) {
-      const playHead = this.context.currentTime - this.startClock;
+      const playHead = this.now() - this.startClock;
       while (this.tick < playHead + TICK_LENGTH) {
         const localPlayHead = this.tick + this.startClock;
         this.process(this.index, this.loopIndex, localPlayHead, playHead);

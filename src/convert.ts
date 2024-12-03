@@ -27,7 +27,7 @@ export function messageToBytes(msg: MIDIMessage): number[] {
     case "sysex":
       return sysex(msg.data);
     default:
-      throw new Error(`Unknown message type: ${msg.type}`);
+      return sysex(new Uint8Array([]));
   }
 }
 
