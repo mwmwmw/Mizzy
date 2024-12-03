@@ -1,8 +1,34 @@
 import { GLOBAL_TUNE, MIDI_14BIT_MAX_VALUE, MIDI_MAX_VALUE } from "./constants";
+import { noteOn, noteOff, cc, pitchBend, afterTouch, channelPressure, programChange, sysex } from "./generate";
+import { MIDIMessage } from "./types";
 
 interface FrequencyConversion {
   note: number;
   pitchBend: string;
+}
+
+export function messageToBytes(msg: MIDIMessage): number[] {
+  // Convert structured message back to bytes
+  switch (msg.type) {
+    case "noteon":
+      return noteOn(msg.note ?? 60, msg.velocity ?? 64, msg.channel ?? 0);
+    case "noteoff":
+      return noteOff(msg.note ?? 60, msg.velocity ?? 64, msg.channel ?? 0);
+    case "cc":
+      return cc(msg.controller ?? 0, msg.value ?? 0, msg.channel ?? 0);
+    case "pitchbend":
+      return pitchBend(msg.value ?? 0, msg.channel ?? 0);
+    case "aftertouch":
+      return afterTouch(msg.note ?? 60, msg.value ?? 0, msg.channel ?? 0);
+    case "channelpressure":
+      return channelPressure(msg.value ?? 0, msg.channel ?? 0);
+    case "program":
+      return programChange(msg.value ?? 0, msg.channel ?? 0);
+    case "sysex":
+      return sysex(msg.data);
+    default:
+      throw new Error(`Unknown message type: ${msg.type}`);
+  }
 }
 
 export function midiNoteToFrequency(midinote: number, tune: number = GLOBAL_TUNE): number {
