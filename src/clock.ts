@@ -1,12 +1,12 @@
-import Events from "./events";
-import { ClockTick } from "./types";
+import { ClockTick, MIDIMessage } from "./types";
+import { Mizzy } from "./index";
 
 const TICK_INCREMENT = 0.25;
 const DEFAULT_LOOP_LENGTH = 16;
 const DEFAULT_TEMPO = 120;
 const TICK_LENGTH = 0.2;
 
-export default class Clock extends Events {
+export default class Clock {
   private context: AudioContext;
   private BPM: number;
   private tickSchedule?: number;
@@ -18,9 +18,11 @@ export default class Clock extends Events {
   private looplength: number;
   private direction: number;
   private lastTick: number;
+  private mizzy: Mizzy;
+  private tickHandlers: { [key: number]: ((tick: ClockTick) => void)[] } = {};
 
-  constructor(context?: AudioContext) {
-    super();
+  constructor(mizzy: Mizzy, context?: AudioContext) {
+    this.mizzy = mizzy;
     this.context = context || new window.AudioContext();
     this.BPM = DEFAULT_TEMPO;
     this.tick = 0;
@@ -31,6 +33,15 @@ export default class Clock extends Events {
     this.looplength = DEFAULT_LOOP_LENGTH;
     this.direction = 1;
     this.lastTick = 0;
+    this.mizzy.onMessage((msg) => this.handleMIDIMessage(msg));
+  }
+
+  private handleMIDIMessage(msg: MIDIMessage): void {
+    if (msg.type === 'start') {
+      this.play();
+    } else if (msg.type === 'stop') {
+      this.stop();
+    }
   }
 
   reset(): void {
@@ -44,16 +55,15 @@ export default class Clock extends Events {
     this.index = index;
     this.loopIndex = loopIndex;
     this.playing = true;
-    this.trigger("play", this.context.currentTime + 0.005);
     this.schedule();
   }
 
   stop(): void {
-    this.trigger("stop");
     this.playing = false;
     if (this.tickSchedule) {
       clearTimeout(this.tickSchedule);
     }
+    this.mizzy.panic();
   }
 
   private schedule(): void {
@@ -77,7 +87,7 @@ export default class Clock extends Events {
       lastTick: this.lastTick,
     };
     this.lastTick = globalTime;
-    this.trigger("tick", tick);
+    this.trigger(tick);
   }
 
   private next(): void {
@@ -93,4 +103,18 @@ export default class Clock extends Events {
 
     this.tick += TICK_INCREMENT * beat;
   }
-} 
+
+  onTick( tick: number,fn: (tick: ClockTick) => void): number {
+    if (!this.tickHandlers[tick]) {
+      this.tickHandlers[tick] = [];
+    }
+    this.tickHandlers[tick].push(fn);
+    return tick;
+  }
+
+  private trigger(tick: ClockTick): void {
+    if (this.tickHandlers[tick.index]) {
+      this.tickHandlers[tick.index].forEach(handler => handler(tick));
+    }
+  }
+}

@@ -1,6 +1,4 @@
-const GLOBAL_TUNE = 440;
-const MIDI_14BIT_MAX_VALUE = 16384;
-const MIDI_MAX_VALUE = 127;
+import { GLOBAL_TUNE, MIDI_14BIT_MAX_VALUE, MIDI_MAX_VALUE } from "./constants";
 
 interface FrequencyConversion {
   note: number;

@@ -1,5 +1,20 @@
 import { KeyCodeMap, NoteMap } from './types';
 
+export const GLOBAL_TUNE = 440;
+export const MIDI_14BIT_MAX_VALUE = 16384;
+export const MIDI_MAX_VALUE = 127;
+
+export const STATUS_TYPE_MAP = {
+  0x90: 'noteon',
+  0x80: 'noteoff', 
+  0xB0: 'cc',
+  0xE0: 'pitchbend',
+  0xA0: 'aftertouch',
+  0xD0: 'channelpressure',
+  0xC0: 'program',
+  0xF0: 'sysex'
+};
+
 export const MIDI_NOTE_ON = 0x90;
 export const MIDI_NOTE_OFF = 0x80;
 export const MIDI_AFTERTOUCH = 0xA0;
@@ -7,6 +22,8 @@ export const MIDI_CONTROL_CHANGE = 0xB0;
 export const MIDI_PROGRAM_CHANGE = 0xC0;
 export const MIDI_CHANNEL_PRESSURE = 0xD0;
 export const MIDI_PITCHBEND = 0xE0;
+export const MIDI_SYSEX = 0xF0;
+export const MIDI_SYSEX_END = 0xF7;
 
 export const MIDI_MESSAGE_EVENT = "midimessage";
 
@@ -21,7 +38,6 @@ export const KEYBOARD_EVENT_KEY_DOWN = "keydown";
 export const KEYBOARD_EVENT_KEY_UP = "keyup";
 
 export const ENHARMONIC_KEYS = ["C", "G", "D", "A", "E", "B", "Cb", "F#", "Gb", "C#", "Db", "Ab", "Eb", "Bb", "F"];
-
 
 export const MIDI_NOTE_MAP: NoteMap = {
   "C": [0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120],

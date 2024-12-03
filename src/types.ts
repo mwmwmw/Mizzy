@@ -6,6 +6,18 @@ declare global {
   }
 }
 
+export interface MIDIMessage {
+  data: Uint8Array;
+  timeStamp?: number;
+  type?: string;
+  note?: number;
+  velocity?: number;
+  value?: number;
+  controller?: number;
+  channel?: number;
+  key?: string;
+}
+
 export declare namespace WebMidi {
 interface MIDIAccess {
   inputs: MIDIInputMap;

@@ -7,36 +7,23 @@ import {
   pitchWheelToPolarRatio,
 } from "./convert";
 
-import { CustomMIDIMessageEvent } from "./events";
 
 import { ENHARMONIC_KEYS, KEY_NOTE_ARRAYS, MIDI_NOTE_MAP } from "./constants";
+import { MIDIMessage } from "./types";
 
 const PITCHWHEEL_CC = "pitchwheel";
-
-export interface MIDIMessage extends CustomMIDIMessageEvent {
-  data: Uint8Array;
-  enharmonics?: Note[];
-  note?: Note;
-  inKey?: boolean;
-  velocity?: number;
-  frequency?: number;
-  cc?: number | string;
-  value?: number;
-  ratio?: number;
-  polarRatio?: number;
-}
 
 type Note = string;
 type Key = string;
 
-export function processNoteEvent(
+export function analyzeNoteEvent(
   message: MIDIMessage,
   key: Key = ENHARMONIC_KEYS[0],
   transpose: number = 0
-): MIDIMessage {
+) {
   const value = message.data[1] + transpose;
   const notes = getNoteNames(value);
-  const data = {
+  return {
     enharmonics: notes,
     note: findNoteInKey(notes, key),
     inKey: isNoteInKey(notes, key),
@@ -44,44 +31,41 @@ export function processNoteEvent(
     velocity: message.data[2],
     frequency: midiNoteToFrequency(value),
     channel: midiChannel(message.data[0]),
-  };
-  return Object.assign(message, data);
+  }
 }
 
-export function processCCEvent(
+export function analyzeCCEvent(
   message: MIDIMessage,
-  ccNameOverride?: number | string
-): MIDIMessage {
-  return Object.assign(message, {
-    cc: ccNameOverride ?? message.data[1],
+) {
+  return {
+    cc: message.data[1],
     value: message.data[2],
     ratio: midiValueToRatio(message.data[2]),
     polarRatio: midiValueToPolarRatio(message.data[2]),
     channel: midiChannel(message.data[0]),
-  });
+  }
 }
 
-export function processPitchWheelEvent(message: MIDIMessage): MIDIMessage {
+export function analyzePitchWheelEvent(message: MIDIMessage) {
   const raw = message.data[1] | (message.data[2] << 7);
-  return Object.assign(message, {
+  return {
     cc: PITCHWHEEL_CC,
     value: raw,
     polar: pitchWheelToPolar(raw),
     polarRatio: pitchWheelToPolarRatio(raw),
     channel: midiChannel(message.data[0]),
-  });
+  };
 }
 
-  export function processMidiControlEvent(
+  export function analyzeMidiControlEvent(
   message: MIDIMessage,
-  controlName: string
-): MIDIMessage {
-  return Object.assign(message, {
-    cc: controlName,
-    value: message.data[1],
+) {
+  return {
+    cc: message.data[1],
+    value: message.data[2],
     ratio: midiValueToRatio(message.data[2]),
     channel: midiChannel(message.data[0]),
-  });
+  }
 }
 
 export function getNoteNames(noteNumber: number): Note[] {
