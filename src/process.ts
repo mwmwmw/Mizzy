@@ -100,6 +100,19 @@ export function isNoteInKey(notes: Note[], key: Key): boolean {
   return false;
 }
 
+export function isNoteNumberInKey(noteNumbers: number[], key: Key): boolean {
+  for (let n = 0; n < noteNumbers.length; n++) {
+    const noteNumber = noteNumbers[n] % 12; // Normalize to single octave
+    const noteNames = getNoteNames(noteNumber);
+    for (let i = 0; i < noteNames.length; i++) {
+      if (matchNoteInKey(noteNames[i], key)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function matchNoteInKey(note: Note, key: Key): boolean {
   for (let i = 0; i < KEY_NOTE_ARRAYS[key].length; i++) {
     const keynote = KEY_NOTE_ARRAYS[key][i];

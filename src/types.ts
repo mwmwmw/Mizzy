@@ -118,3 +118,20 @@ export interface KeyCodeMap {
 export interface CCHandler {
   (data: MIDIProcessedEvent): void;
 }
+
+export interface AccidentalMap {
+  [key: string]: string;
+}
+
+export interface KeyNoteMap {
+  [key: string]: string[];
+}
+
+export interface IntervalMap {
+  [key: string]: number;
+}
+
+export interface ChordSuggestion {
+  name: string;
+  intervals: number[];
+}

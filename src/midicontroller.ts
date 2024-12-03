@@ -1,5 +1,5 @@
 import { Mizzy } from "./index";
-import { KEY_CODE_MAP } from "./constants";
+import { KEYBOARD_KEY_MAP } from "./constants";
 
 export function pointerPositionToNote(
   e: PointerEvent,
@@ -41,14 +41,14 @@ export default class MIDIController {
   }
 
   keyboardKeyDown(event: KeyboardEvent): void {
-    const note = KEY_CODE_MAP[event.code];
+    const note = KEYBOARD_KEY_MAP[event.code];
     if (note !== undefined) {
       this.mizzy.noteOn(note, undefined, this.channel);
     }
   }
 
   keyboardKeyUp(event: KeyboardEvent): void {
-    const note = KEY_CODE_MAP[event.code];
+    const note = KEYBOARD_KEY_MAP[event.code];
     if (note !== undefined) {
       this.mizzy.noteOff(note, this.channel);
     }

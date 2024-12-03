@@ -12,8 +12,10 @@ import {
 	ENHARMONIC_KEYS,
 	ACCIDENTALS,
 	MIDI_NOTE_MAP,
-
+	CHORDS,
 } from "./constants";
+import { isNoteNumberInKey } from "./process";
+import { ChordSuggestion } from "./types";
 
 export function noteOn(noteNumber: number, velocity: number, channel: number = 0): number[] {
     return [MIDI_NOTE_ON+channel, noteNumber, velocity]
@@ -185,3 +187,26 @@ export function getNoteSequenceWithNames(interval: number) {
         names
     };
 }
+
+export function getChordsForNote(note: number, key: string): ChordSuggestion[] {
+	const suggestions: ChordSuggestion[] = [];
+	const noteInKey = note % 12; // Normalize to single octave
+	
+	// Check each chord definition
+	for (const [chordName, intervals] of Object.entries(CHORDS)) {
+	  // For each interval in the chord, check if it could be the root
+	  intervals.forEach((interval) => {
+		const potentialRoot = (noteInKey - interval + 12) % 12;
+		
+		// If this note could be part of this chord, add it to suggestions
+		if (isNoteNumberInKey([potentialRoot], key)) {
+		  suggestions.push({
+			name: `${NOTE_NAMES[potentialRoot]} ${chordName}`,
+			intervals: intervals
+		  });
+		}
+	  });
+	}
+  
+	return suggestions;
+  }
