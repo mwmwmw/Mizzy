@@ -1,7 +1,8 @@
 import { KeyCodeMap, NoteMap } from './types';
 
 export const GLOBAL_TUNE = 440;
-export const MIDI_14BIT_MAX_VALUE = 16384;
+export const MIDI_14BIT_MAX_VALUE = 16383;
+export const MIDI_14BIT_HALF_MAX_VALUE = 8192;
 export const MIDI_MAX_VALUE = 127;
 
 export const STATUS_TYPE_MAP = {
@@ -38,6 +39,7 @@ export const KEYBOARD_EVENT_KEY_DOWN = "keydown";
 export const KEYBOARD_EVENT_KEY_UP = "keyup";
 
 export const ENHARMONIC_KEYS = ["C", "G", "D", "A", "E", "B", "Cb", "F#", "Gb", "C#", "Db", "Ab", "Eb", "Bb", "F"];
+
 
 export const MIDI_NOTE_MAP: NoteMap = {
   "C": [0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120],

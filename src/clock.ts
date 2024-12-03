@@ -8,7 +8,7 @@ const TICK_LENGTH = 0.2;
 
 export default class Clock {
   private BPM: number;
-  private tickSchedule?: number;
+  private tickSchedule?: ReturnType<typeof requestAnimationFrame>;
   private tick: number;
   private playing: boolean;
   private loopIndex: number;
@@ -76,7 +76,8 @@ export default class Clock {
         this.process(this.index, this.loopIndex, localPlayHead, playHead);
         this.next();
       }
-      this.tickSchedule = setTimeout(() => this.schedule(), 0);
+      // Use requestAnimationFrame for better timing accuracy and performance
+      this.tickSchedule = requestAnimationFrame(() => this.schedule());
     }
   }
 

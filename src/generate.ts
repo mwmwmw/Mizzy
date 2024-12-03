@@ -9,6 +9,9 @@ import {
 	NOTE_NAMES,
     MIDI_SYSEX,
     MIDI_SYSEX_END,
+	ENHARMONIC_KEYS,
+	ACCIDENTALS,
+	MIDI_NOTE_MAP,
 
 } from "./constants";
 
@@ -41,22 +44,32 @@ export function sysex(data: Uint8Array): number[] {
 }
 
 export function pitchBend(value: number, channel: number = 0): number[] {
-    const normalized = Math.floor(((value + 1) / 2) * 16383);
+    // Clamp input value between -1 and 1
+    value = Math.max(-1, Math.min(1, value));
+    // Convert from [-1, 1] to [0, 16383] with 8192 as center
+	const normalized = Math.round(8192 + (value * 8191));
+    // Split into MSB and LSB (7 bits each)
     const msb = (normalized >> 7) & 0x7F;
     const lsb = normalized & 0x7F;
-    return [MIDI_PITCHBEND+channel, lsb, msb]
+    
+    return [MIDI_PITCHBEND + channel, lsb, msb];
 }
 
 export const getRepeatingNoteSequence = (startNote: number, interval: number): number[] => {
+	if (interval === 0) return [];
+	if (startNote > 127) return [];
 	const sequence: number[] = [];
 	let currentNote = startNote;
   
 	sequence.push(currentNote);
 	currentNote += interval;
   
-	while ((currentNote % 12) !== (startNote % 12) || currentNote === startNote) {
+	while (currentNote <= 127) {
 	  sequence.push(currentNote);
 	  currentNote += interval;
+	  if (currentNote > startNote && (currentNote % 12) === (startNote % 12)) {
+	    break;
+	  }
 	}
   
 	return sequence;
@@ -76,6 +89,27 @@ export const getRepeatingNoteSequence = (startNote: number, interval: number): n
 	const noteIndex = midiNoteNumber % 12;
 	return NOTE_NAMES[noteIndex];
 };
+
+
+export function getEnharmonicKeyName(midiNote: number, key: string): string {
+    // Get note name from MIDI note number (0-11)
+    const noteIndex = midiNote;
+    
+    // Get all possible note names for this index from MIDI_NOTE_MAP
+    const possibleNames = Object.entries(MIDI_NOTE_MAP).filter(([_, values]) => values.includes(noteIndex)).map(([name]) => name);
+
+    // If the key is in ENHARMONIC_KEYS, prefer accidentals matching that key's convention
+    if (ENHARMONIC_KEYS.includes(key)) {
+        const keyAccidental = ACCIDENTALS[key];
+        const matchingName = possibleNames.find(name => 
+            name.includes(keyAccidental) || name.length === 1
+        );
+        if (matchingName) return matchingName;
+    }
+
+    // Default to first possible name if no match found
+    return possibleNames[0];
+}
   
   export const getNoteSequence = (startNote: number, interval: number): number[] => {
 	const sequence: number[] = [];
@@ -132,7 +166,6 @@ export function getNoteSequenceWithNames(interval: number) {
     let i = 0;
     while (!hasAllValues(circles, 0, 127)) {   
         const sequence = getRepeatingNoteSequenceRaw(0+i, interval);
-        console.log(sequence);
         circles.push(sequence);
         i++;
     }
