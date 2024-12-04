@@ -72,18 +72,17 @@ export class Mizzy {
     this.listeners.forEach((listener) => listener(msg));
   }
 
+  async init() {
+    const access = await navigator.requestMIDIAccess();
+    this.inputs = new Map(Array.from(access.inputs.values()).map((i) => [i.id, i]));
+    this.outputs = new Map(Array.from(access.outputs.values()).map((o) => [o.id, o]));
+  }
+
   // Simple device selection
   async listDevices() {
-    const access = await navigator.requestMIDIAccess();
     return {
-      inputs: Array.from(access.inputs.values()).map((i) => ({
-        id: i.id,
-        name: i.name,
-      })),
-      outputs: Array.from(access.outputs.values()).map((o) => ({
-        id: o.id,
-        name: o.name,
-      })),
+      inputs: Array.from(this.inputs.values()),
+      outputs: Array.from(this.outputs.values()),
     };
   }
 
@@ -96,11 +95,21 @@ export class Mizzy {
     return this;
   }
 
-  useOutput(outputId?: string) {
+  closeInput(id: string) {
+    this.useInputs.delete(id);
+    return this;
+  }
+
+  useOutput(id: string = "") {
     this.useOutputs.set(
-      outputId ?? "",
-      this.outputs.get(outputId ?? "") ?? this.outputs.values().next().value
+      id,
+      this.outputs.get(id) ?? this.outputs.values().next().value
     );
+    return this;
+  }
+
+  closeOutput(id: string) {
+    this.useOutputs.delete(id);
     return this;
   }
 
@@ -122,6 +131,7 @@ export class Mizzy {
     });
     return this;
   }
+
   onMessage(callback: (msg: MIDIMessage) => void) {
     this.listeners.add(callback);
     return this;
