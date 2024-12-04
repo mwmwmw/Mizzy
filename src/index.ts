@@ -88,7 +88,7 @@ export class Mizzy {
   }
 
   // Chainable interface
-  use(inputId?: string) {
+  useInput(inputId?: string) {
     this.useInputs.set(
       inputId ?? "",
       this.inputs.get(inputId ?? "") ?? this.inputs.values().next().value
@@ -96,7 +96,7 @@ export class Mizzy {
     return this;
   }
 
-  output(outputId?: string) {
+  useOutput(outputId?: string) {
     this.useOutputs.set(
       outputId ?? "",
       this.outputs.get(outputId ?? "") ?? this.outputs.values().next().value
