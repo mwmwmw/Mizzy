@@ -115,10 +115,13 @@ export class Mizzy {
     if (this.virtualLoop) {
       this.handleMessage(message);
     }
-    // Send to selected output(s)
+    this.useOutputs.forEach((output) => {
+      if (output?.send) {
+        output.send(message);
+      }
+    });
     return this;
   }
-  // Easy message handling
   onMessage(callback: (msg: MIDIMessage) => void) {
     this.listeners.add(callback);
     return this;
