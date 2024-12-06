@@ -15,8 +15,8 @@ import { MIDIMessage } from "./types";
 export class Mizzy {
   private inputs: Map<string, MIDIInput> = new Map();
   private outputs: Map<string, MIDIOutput> = new Map();
-  private useInputs: Map<string, MIDIInput> = new Map();
-  private useOutputs: Map<string, MIDIOutput> = new Map();
+  useInputs: Map<string, MIDIInput> = new Map();
+  useOutputs: Map<string, MIDIOutput> = new Map();
   private listeners: Set<(msg: MIDIMessage) => void> = new Set();
   private virtualLoop: boolean = false;
   private processors: ((msg: MIDIMessage) => MIDIMessage | null)[] = [];
@@ -50,7 +50,7 @@ export class Mizzy {
   }
 
   private handleMessage(rawMessage: number[]) {
-    let status = rawMessage[0] & 0xf0;
+    const status = rawMessage[0] & 0xf0;
     let msg: MIDIMessage = {
       data: new Uint8Array(rawMessage),
       type: STATUS_TYPE_MAP[status as keyof typeof STATUS_TYPE_MAP],
@@ -74,12 +74,16 @@ export class Mizzy {
 
   async init() {
     const access = await navigator.requestMIDIAccess();
-    this.inputs = new Map(Array.from(access.inputs.values()).map((i) => [i.id, i]));
-    this.outputs = new Map(Array.from(access.outputs.values()).map((o) => [o.id, o]));
+    this.inputs = new Map(
+      Array.from(access.inputs.values()).map((i) => [i.id, i])
+    );
+    this.outputs = new Map(
+      Array.from(access.outputs.values()).map((o) => [o.id, o])
+    );
   }
 
   // Simple device selection
-  async listDevices() {
+  listDevices() {
     return {
       inputs: Array.from(this.inputs.values()),
       outputs: Array.from(this.outputs.values()),
@@ -121,14 +125,21 @@ export class Mizzy {
 
   // Simple message sending
   send(message: number[]) {
-    if (this.virtualLoop) {
+    this.useOutputs.forEach((output) => {
+      this.sendTo(output.id, message, this.virtualLoop);
+    });
+    return this;
+  }
+
+  // Simple message sending
+  sendTo(outputId: string, message: number[], loopback: boolean = false) {
+    if (loopback) {
       this.handleMessage(message);
     }
-    this.useOutputs.forEach((output) => {
-      if (output?.send) {
-        output.send(message);
-      }
-    });
+    const output = this.useOutputs.get(outputId);
+    if (output?.send) {
+      output.send(message);
+    }
     return this;
   }
 
@@ -178,5 +189,4 @@ export class Mizzy {
     }
     return this;
   }
-  
 }
