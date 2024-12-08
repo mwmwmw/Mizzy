@@ -1,5 +1,4 @@
 import Clock from "./clock";
-import { STATUS_TYPE_MAP } from "./constants";
 import {
   afterTouch,
   cc,
@@ -10,7 +9,6 @@ import {
   programChange,
   sysex,
 } from "./generate";
-import { MIDIMessage } from "./types";
 
 export class Mizzy {
   private inputs: Map<string, MIDIInput> = new Map();
@@ -57,11 +55,8 @@ export class Mizzy {
       if (!processed) return; // Message filtered out
       newEvent = processed;
     }
-
-    console.log("MIDI Message", newEvent);
-
     // Notify listeners
-    this.listeners.forEach((listener) => listener(event));
+    this.listeners.forEach((listener) => listener(newEvent));
   }
 
   async init() {
