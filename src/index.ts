@@ -1,4 +1,3 @@
-import Clock from "./clock";
 import {
   afterTouch,
   cc,
@@ -17,42 +16,27 @@ export class Mizzy {
   useOutputs: Map<string, MIDIOutput> = new Map();
   private listeners: Set<(msg: unknown) => void> = new Set();
   private virtualLoop: boolean = false;
-  private processors: ((msg: unknown) => unknown | null)[] = [];
-  private generators: (() => number[] | null)[] = [];
-  private clock: Clock;
+  private processors: Set<(msg: unknown) => void> = new Set();
 
-  constructor() {
-    this.clock = new Clock(this);
-  }
-
-  process(fn: (msg: unknown) => unknown | null) {
-    this.processors.push(fn);
+  addProcessor(fn: (msg: unknown) => unknown | null) {
+    this.processors.add(fn);
     return this;
   }
 
-  generate(fn: () => number[] | null, ticks: number[] = []) {
-    this.generators.push(fn);
-
-    ticks.forEach((tick) => {
-      this.clock.onTick(tick, () => {
-        this.generators.forEach((generator) => {
-          const msg = generator();
-          if (msg) {
-            this.send(msg);
-          }
-        });
-      });
-    });
-
+  removeProcessor(fn: (msg: unknown) => unknown | null) {
+    this.processors.delete(fn);
     return this;
   }
 
   private handleMessage(event: MIDIMessageEvent) {
     // Run through processors
-    let newEvent:unknown = event;
+    let newEvent: unknown = event;
+
     for (const processor of this.processors) {
-      const processed = processor(event);
-      if (!processed) return; // Message filtered out
+      const processed = processor(newEvent);
+      if (processed === null || processed === undefined) {
+        return; // Message filtered out completely
+      }
       newEvent = processed;
     }
     // Notify listeners
@@ -77,23 +61,24 @@ export class Mizzy {
     };
   }
 
-  // Chainable interface
   useInput(inputId?: string) {
-    this.useInputs.set(
-      inputId ?? "",
-      this.inputs.get(inputId ?? "") ?? this.inputs.values().next().value
-    ).forEach((input)=>{
-      input.onmidimessage = (e)=>{
-        this.handleMessage(e);
-      };
-    });
-    
+    this.useInputs
+      .set(
+        inputId ?? "",
+        this.inputs.get(inputId ?? "") ?? this.inputs.values().next().value
+      )
+      .forEach((input) => {
+        input.onmidimessage = (e) => {
+          this.handleMessage(e);
+        };
+      });
+
     return this;
   }
 
   closeInput(id: string) {
     const input = this.useInputs.get(id);
-    if(input){
+    if (input) {
       input.onmidimessage = null;
     }
     this.useInputs.delete(id);
@@ -110,7 +95,7 @@ export class Mizzy {
 
   closeOutput(id: string) {
     const output = this.useOutputs.get(id);
-    if(output){
+    if (output) {
       output.onstatechange = null;
     }
     this.useOutputs.delete(id);
@@ -136,7 +121,7 @@ export class Mizzy {
     if (loopback) {
       const event: MIDIMessageEvent = new MIDIMessageEvent("midimessage", {
         data: new Uint8Array(message),
-      })
+      });
       this.handleMessage(event);
     }
     const output = this.useOutputs.get(outputId);
@@ -148,6 +133,11 @@ export class Mizzy {
 
   onMessage(callback: (msg: unknown) => void) {
     this.listeners.add(callback);
+    return this;
+  }
+
+  unmessage(callback: (msg: unknown) => void) {
+    this.listeners.delete(callback);
     return this;
   }
 
@@ -190,6 +180,16 @@ export class Mizzy {
         this.noteOff(note, channel);
       }
     }
+    return this;
+  }
+
+  connect() {
+    this.inputs.forEach((input) => {
+      this.useInput(input.id);
+    });
+    this.outputs.forEach((output) => {
+      this.useOutput(output.id);
+    });
     return this;
   }
 }
