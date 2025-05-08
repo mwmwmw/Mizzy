@@ -31,7 +31,7 @@ export default class Clock {
     this.looplength = DEFAULT_LOOP_LENGTH;
     this.direction = 1;
     this.lastTick = 0;
-    this.mizzy.onMessage((msg) => this.handleMIDIMessage(msg));
+    this.mizzy.onMessage((msg: any) => this.handleMIDIMessage(msg));
   }
 
   private handleMIDIMessage(msg: MIDIMessage): void {

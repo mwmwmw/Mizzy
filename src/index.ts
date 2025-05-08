@@ -65,7 +65,7 @@ export class Mizzy {
     this.useInputs
       .set(
         inputId ?? "",
-        this.inputs.get(inputId ?? "") ?? this.inputs.values().next().value
+        this.inputs.get(inputId ?? "") ?? this.inputs.values().next().value as MIDIInput
       )
       .forEach((input) => {
         input.onmidimessage = (e) => {
@@ -88,7 +88,7 @@ export class Mizzy {
   useOutput(id: string = "") {
     this.useOutputs.set(
       id,
-      this.outputs.get(id) ?? this.outputs.values().next().value
+      this.outputs.get(id) ?? this.outputs.values().next().value as MIDIOutput
     );
     return this;
   }

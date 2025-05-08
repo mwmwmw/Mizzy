@@ -1,0 +1,44 @@
+import { KeyCodeMap, NoteMap, AccidentalMap, KeyNoteMap, IntervalMap } from './types';
+export declare const GLOBAL_TUNE = 440;
+export declare const MIDI_14BIT_MAX_VALUE = 16383;
+export declare const MIDI_14BIT_HALF_MAX_VALUE = 8192;
+export declare const MIDI_MAX_VALUE = 127;
+export declare const STATUS_TYPE_MAP: {
+    144: string;
+    128: string;
+    176: string;
+    224: string;
+    160: string;
+    208: string;
+    192: string;
+    240: string;
+};
+export declare const MIDI_NOTE_ON = 144;
+export declare const MIDI_NOTE_OFF = 128;
+export declare const MIDI_AFTERTOUCH = 160;
+export declare const MIDI_CONTROL_CHANGE = 176;
+export declare const MIDI_PROGRAM_CHANGE = 192;
+export declare const MIDI_CHANNEL_PRESSURE = 208;
+export declare const MIDI_PITCHBEND = 224;
+export declare const MIDI_SYSEX = 240;
+export declare const MIDI_SYSEX_END = 247;
+export declare const MIDI_MESSAGE_EVENT = "midimessage";
+export declare const NOTE_ON_EVENT = "NoteOn";
+export declare const NOTE_OFF_EVENT = "NoteOff";
+export declare const PITCHWHEEL_EVENT = "PitchWheel";
+export declare const CONTROLLER_EVENT = "Controller";
+export declare const PROGRAM_CHANGE_EVENT = "ProgramChange";
+export declare const AFTERTOUCH_EVENT = "Aftertouch";
+export declare const KEYBOARD_EVENT_KEY_DOWN = "keydown";
+export declare const KEYBOARD_EVENT_KEY_UP = "keyup";
+export declare const ENHARMONIC_KEYS: string[];
+export declare const MIDI_NOTE_MAP: NoteMap;
+export declare const ACCIDENTALS: AccidentalMap;
+export declare const KEY_NOTE_ARRAYS: KeyNoteMap;
+export declare const INTERVALS: IntervalMap;
+export interface ChordMap {
+    [key: string]: number[];
+}
+export declare const CHORDS: ChordMap;
+export declare const KEYBOARD_KEY_MAP: KeyCodeMap;
+export declare const NOTE_NAMES: string[];

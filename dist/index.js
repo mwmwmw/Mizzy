@@ -1,0 +1,152 @@
+import { afterTouch, cc, channelPressure, noteOff, noteOn, pitchBend, programChange, sysex, } from "./generate";
+export class Mizzy {
+    constructor() {
+        this.inputs = new Map();
+        this.outputs = new Map();
+        this.useInputs = new Map();
+        this.useOutputs = new Map();
+        this.listeners = new Set();
+        this.virtualLoop = false;
+        this.processors = new Set();
+    }
+    addProcessor(fn) {
+        this.processors.add(fn);
+        return this;
+    }
+    removeProcessor(fn) {
+        this.processors.delete(fn);
+        return this;
+    }
+    handleMessage(event) {
+        // Run through processors
+        let newEvent = event;
+        for (const processor of this.processors) {
+            const processed = processor(newEvent);
+            if (processed === null || processed === undefined) {
+                return; // Message filtered out completely
+            }
+            newEvent = processed;
+        }
+        // Notify listeners
+        this.listeners.forEach((listener) => listener(newEvent));
+    }
+    async init() {
+        const access = await navigator.requestMIDIAccess();
+        this.inputs = new Map(Array.from(access.inputs.values()).map((i) => [i.id, i]));
+        this.outputs = new Map(Array.from(access.outputs.values()).map((o) => [o.id, o]));
+    }
+    // Simple device selection
+    listDevices() {
+        return {
+            inputs: Array.from(this.inputs.values()),
+            outputs: Array.from(this.outputs.values()),
+        };
+    }
+    useInput(inputId) {
+        this.useInputs
+            .set(inputId ?? "", this.inputs.get(inputId ?? "") ?? this.inputs.values().next().value)
+            .forEach((input) => {
+            input.onmidimessage = (e) => {
+                this.handleMessage(e);
+            };
+        });
+        return this;
+    }
+    closeInput(id) {
+        const input = this.useInputs.get(id);
+        if (input) {
+            input.onmidimessage = null;
+        }
+        this.useInputs.delete(id);
+        return this;
+    }
+    useOutput(id = "") {
+        this.useOutputs.set(id, this.outputs.get(id) ?? this.outputs.values().next().value);
+        return this;
+    }
+    closeOutput(id) {
+        const output = this.useOutputs.get(id);
+        if (output) {
+            output.onstatechange = null;
+        }
+        this.useOutputs.delete(id);
+        return this;
+    }
+    // Enable/disable virtual loopback
+    loopback(enable = true) {
+        this.virtualLoop = enable;
+        return this;
+    }
+    // Simple message sending
+    send(message) {
+        this.useOutputs.forEach((output) => {
+            this.sendTo(output.id, message, this.virtualLoop);
+        });
+        return this;
+    }
+    // Simple message sending
+    sendTo(outputId, message, loopback = false) {
+        if (loopback) {
+            const event = new MIDIMessageEvent("midimessage", {
+                data: new Uint8Array(message),
+            });
+            this.handleMessage(event);
+        }
+        const output = this.useOutputs.get(outputId);
+        if (output?.send) {
+            output.send(message);
+        }
+        return this;
+    }
+    onMessage(callback) {
+        this.listeners.add(callback);
+        return this;
+    }
+    unmessage(callback) {
+        this.listeners.delete(callback);
+        return this;
+    }
+    noteOn(note, velocity = 64, channel = 0) {
+        return this.send(noteOn(note, velocity, channel));
+    }
+    noteOff(note, channel = 0) {
+        return this.send(noteOff(note, 0, channel));
+    }
+    cc(controller, value, channel = 0) {
+        return this.send(cc(controller, value, channel));
+    }
+    programChange(program, channel = 0) {
+        return this.send(programChange(program, channel));
+    }
+    pitchBend(value, channel = 0) {
+        return this.send(pitchBend(value, channel));
+    }
+    aftertouch(pressure, channel = 0) {
+        return this.send(channelPressure(pressure, channel));
+    }
+    polyAftertouch(note, pressure, channel = 0) {
+        return this.send(afterTouch(note, pressure, channel));
+    }
+    sysex(data) {
+        return this.send(sysex(data));
+    }
+    panic() {
+        // Send note off for every note (0-127) on every channel (0-15)
+        for (let channel = 0; channel < 16; channel++) {
+            for (let note = 0; note < 128; note++) {
+                this.noteOff(note, channel);
+            }
+        }
+        return this;
+    }
+    connect() {
+        this.inputs.forEach((input) => {
+            this.useInput(input.id);
+        });
+        this.outputs.forEach((output) => {
+            this.useOutput(output.id);
+        });
+        return this;
+    }
+}
+//# sourceMappingURL=index.js.map
